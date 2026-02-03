@@ -13,7 +13,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Initialize from localStorage or default to 'dark'
   const [theme, setTheme] = useState<ThemeName>(() => {
     const saved = localStorage.getItem('devomni-theme');
-    return (saved as ThemeName) || 'dark';
+    // Basic validation to fallback if saved theme is no longer supported
+    if (saved === 'dark' || saved === 'light' || saved === 'midnight') {
+      return saved as ThemeName;
+    }
+    return 'dark';
   });
 
   useEffect(() => {
