@@ -12,7 +12,8 @@ import {
   Search,
   PanelLeft,
   Binary,
-  Calculator
+  Calculator,
+  FileCode
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -99,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
 
         {/* Converters Section */}
         <div className="px-2">
-          {(matchesSearch('converters') || matchesSearch('json') || matchesSearch('sql') || matchesSearch('url') || matchesSearch('base64') || matchesSearch('number')) && (
+          {(matchesSearch('converters') || matchesSearch('json') || matchesSearch('sql') || matchesSearch('url') || matchesSearch('base64') || matchesSearch('number') || matchesSearch('yaml')) && (
             <div className="text-xs font-semibold text-text-secondary px-3 mb-2 uppercase tracking-wider mt-2">Converters</div>
           )}
           <div className="space-y-1">
@@ -109,6 +110,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
                 onClick={() => setActiveTool('json')} 
                 icon={<Braces size={18} />} 
                 label="JSON Format" 
+              />
+            )}
+            {matchesSearch('json yaml') && (
+              <NavItem 
+                active={activeTool === 'yaml'} 
+                onClick={() => setActiveTool('yaml')} 
+                icon={<FileCode size={18} />} 
+                label="JSON <> YAML" 
               />
             )}
             {matchesSearch('sql format') && (

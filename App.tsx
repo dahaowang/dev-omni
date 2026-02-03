@@ -9,6 +9,7 @@ import { UrlEncoderTool } from './components/tools/UrlEncoderTool';
 import { Base64Tool } from './components/tools/Base64Tool';
 import { SqlFormatterTool } from './components/tools/SqlFormatterTool';
 import { NumberConverterTool } from './components/tools/NumberConverterTool';
+import { JsonToYamlTool } from './components/tools/JsonToYamlTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -20,6 +21,7 @@ const TOOL_LABELS: Record<string, string> = {
   url: 'URL Encoder',
   base64: 'Base64 Converter',
   number: 'Number Base',
+  yaml: 'JSON <> YAML',
   hash: 'Hash/MD5 Generator',
   diff: 'Text Diff',
   dedupe: 'Dedupe Lines'
@@ -56,6 +58,8 @@ const App: React.FC = () => {
         return <Base64Tool {...commonProps} />;
       case 'number':
         return <NumberConverterTool {...commonProps} />;
+      case 'yaml':
+        return <JsonToYamlTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
