@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { JsonFormatter } from './components/tools/JsonFormatter';
 import { DedupeTool } from './components/tools/DedupeTool';
 import { DiffTool } from './components/tools/DiffTool';
+import { HashTool } from './components/tools/HashTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -39,6 +40,8 @@ const App: React.FC = () => {
         return <DedupeTool {...commonProps} />;
       case 'diff':
         return <DiffTool {...commonProps} />;
+      case 'hash':
+        return <HashTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
