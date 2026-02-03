@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* Optimized Dark Theme (Reference: Screenshot) */
+    /* Optimized Dark Theme */
     --color-app-bg: #0c0c0c;       /* Main content background - Deep Matte Black */
     --color-sidebar-bg: #050505;   /* Sidebar - Almost Pure Black */
     --color-panel-bg: #171717;     /* Cards - Dark Neutral Grey */
@@ -25,7 +25,7 @@
   }
 
   [data-theme='graphite'] {
-    /* Modern Grey Theme (Requested Style) */
+    /* Modern Grey Theme */
     --color-app-bg: #292929;       /* Deep Grey Background */
     --color-sidebar-bg: #222222;   /* Slightly darker sidebar for hierarchy */
     --color-panel-bg: #393939;     /* Lighter Grey Cards (Floating effect) */
@@ -42,7 +42,28 @@
     --color-active-item: #393939;    /* Active state matches panel */
     --color-hover-overlay: rgba(255, 255, 255, 0.08);
     
-    --shadow-card: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 4px 12px -2px rgba(0, 0, 0, 0.2); /* Stronger shadows for floating feel */
+    --shadow-card: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 4px 12px -2px rgba(0, 0, 0, 0.2);
+  }
+
+  [data-theme='cream'] {
+    /* Cream / Latte Theme (Reference: Image) */
+    --color-app-bg: #F2EFE5;       /* Warm Cream Background */
+    --color-sidebar-bg: #F2EFE5;   /* Seamless sidebar */
+    --color-panel-bg: #FFFFFF;     /* White cards for floating effect */
+    --color-element-bg: #E6E3D8;   /* User specified element color */
+    --color-input-bg: #F8F6F0;     /* Slightly lighter than element for inputs */
+    
+    --color-border: #E6E3D8;       /* Subtle matching border */
+    --color-border-hover: #D1CFC0;
+    
+    --color-text-primary: #2C2C2C;   /* Soft Black */
+    --color-text-secondary: #6B6B6B; /* Warm Grey */
+    
+    --color-accent: #57A364;         /* Natural Green (from reference image) */
+    --color-active-item: #E6E3D8;    /* Matches element bg */
+    --color-hover-overlay: rgba(0, 0, 0, 0.04);
+    
+    --shadow-card: 0 4px 20px -4px rgba(0, 0, 0, 0.06); /* Soft, diffused light shadow */
   }
 
   [data-theme='light'] {
