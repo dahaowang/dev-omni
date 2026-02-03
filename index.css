@@ -95,29 +95,30 @@
   }
 
   [data-theme='glass'] {
-    /* Glassmorphism / Frost Theme */
+    /* Glassmorphism / Frost Theme (Light Version) */
     /* Note: Background gradient is applied in body rule below */
     --color-app-bg: transparent; 
     
-    /* Highly transparent layers */
-    --color-sidebar-bg: rgba(15, 23, 42, 0.3); 
-    --color-panel-bg: rgba(255, 255, 255, 0.03);
-    --color-element-bg: rgba(255, 255, 255, 0.08);
-    --color-input-bg: rgba(0, 0, 0, 0.2);
+    /* Frosted White Layers */
+    --color-sidebar-bg: rgba(255, 255, 255, 0.65); 
+    --color-panel-bg: rgba(255, 255, 255, 0.45);
+    --color-element-bg: rgba(255, 255, 255, 0.55);
+    --color-input-bg: rgba(255, 255, 255, 0.3);
     
-    /* Subtle white borders for glass edge effect */
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-hover: rgba(255, 255, 255, 0.15);
+    /* Crisp White/Subtle Grey Borders */
+    --color-border: rgba(255, 255, 255, 0.9);
+    --color-border-hover: #ffffff;
     
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #94a3b8;
+    /* Dark Text for Contrast */
+    --color-text-primary: #1e293b;   /* Slate 800 */
+    --color-text-secondary: #64748b; /* Slate 500 */
     
-    --color-accent: #38bdf8;         /* Sky Blue 400 */
-    --color-active-item: rgba(255, 255, 255, 0.1);
-    --color-hover-overlay: rgba(255, 255, 255, 0.05);
+    --color-accent: #3b82f6;         /* Blue 500 */
+    --color-active-item: rgba(255, 255, 255, 0.8);
+    --color-hover-overlay: rgba(255, 255, 255, 0.5);
     
-    /* No heavy shadow, let the blur do the work, maybe a subtle glow */
-    --shadow-card: 0 4px 30px rgba(0, 0, 0, 0.1);
+    /* Soft, colorful shadow for depth on light bg */
+    --shadow-card: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
   }
 }
 
@@ -127,7 +128,8 @@ body {
 
 /* Specific body background for Glass theme to show depth behind blur */
 [data-theme='glass'] body {
-  background: radial-gradient(circle at top left, #1e293b, #020617);
+  /* Soft Pastel Gradient: Top-Left (Lavender) -> Bottom-Right (Light Blue) */
+  background: radial-gradient(circle at top left, #e0e7ff, #f3f4f6, #fdfbf7);
   background-attachment: fixed;
 }
 
@@ -135,8 +137,8 @@ body {
 [data-theme='glass'] .bg-sidebar-bg,
 [data-theme='glass'] .bg-panel-bg,
 [data-theme='glass'] .bg-element-bg {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 /* Custom Scrollbar */
