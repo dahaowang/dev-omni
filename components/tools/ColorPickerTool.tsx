@@ -5,7 +5,8 @@ import {
   CheckCircle2, 
   Palette,
   RefreshCw,
-  Pipette
+  Pipette,
+  ChevronDown
 } from 'lucide-react';
 
 interface ColorPickerToolProps {
@@ -73,8 +74,22 @@ const rgbToCmyk = (r: number, g: number, b: number) => {
   return { c, m, y, k };
 };
 
+const hslToHex = (h: number, s: number, l: number) => {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+};
+
+type PaletteType = 'analogous' | 'monochromatic' | 'triadic' | 'complementary' | 'split-complementary';
+
 export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [color, setColor] = useState<string>('#6366f1'); // Default to Accent Color
+  const [paletteType, setPaletteType] = useState<PaletteType>('analogous');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,6 +134,58 @@ export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen,
   const triggerColorPicker = () => {
     colorInputRef.current?.click();
   };
+
+  const getPalette = (): string[] => {
+    const { h, s, l } = hsl;
+    const clamp = (v: number, min = 0, max = 100) => Math.max(min, Math.min(max, v));
+    
+    switch (paletteType) {
+      case 'analogous':
+        return [
+          hslToHex((h - 30 + 360) % 360, s, l),
+          hslToHex((h - 15 + 360) % 360, s, l),
+          hslToHex(h, s, l),
+          hslToHex((h + 15) % 360, s, l),
+          hslToHex((h + 30) % 360, s, l),
+        ];
+      case 'monochromatic':
+        return [
+          hslToHex(h, s, clamp(l - 30)),
+          hslToHex(h, s, clamp(l - 15)),
+          hslToHex(h, s, l),
+          hslToHex(h, s, clamp(l + 15)),
+          hslToHex(h, s, clamp(l + 30)),
+        ];
+      case 'triadic':
+        return [
+          hslToHex(h, s, l),
+          hslToHex((h + 120) % 360, s, l),
+          hslToHex((h + 240) % 360, s, l),
+          hslToHex(h, clamp(s - 30), clamp(l + 10)),
+          hslToHex((h + 120) % 360, clamp(s - 30), clamp(l + 10)),
+        ];
+      case 'complementary':
+        return [
+           hslToHex(h, s, l),
+           hslToHex((h + 180) % 360, s, l),
+           hslToHex(h, s, clamp(l + 20)),
+           hslToHex((h + 180) % 360, s, clamp(l + 20)),
+           hslToHex(h, clamp(s - 20), l)
+        ];
+      case 'split-complementary':
+        return [
+           hslToHex(h, s, l),
+           hslToHex((h + 150) % 360, s, l),
+           hslToHex((h + 210) % 360, s, l),
+           hslToHex((h + 150) % 360, clamp(s - 20), clamp(l + 10)),
+           hslToHex((h + 210) % 360, clamp(s - 20), clamp(l + 10)),
+        ];
+      default:
+        return [color];
+    }
+  };
+
+  const paletteColors = getPalette();
 
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
@@ -189,7 +256,7 @@ export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen,
              </div>
           </div>
 
-          {/* Right Column: Formats & Codes */}
+          {/* Right Column: Formats & Palette */}
           <div className="flex-1 flex flex-col gap-4">
             
              <div className="grid grid-cols-1 gap-3">
@@ -222,21 +289,53 @@ export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen,
                ))}
              </div>
 
-             {/* Simple Palette Preview */}
-             <div className="bg-panel-bg border border-border-base rounded-lg p-4">
-                <div className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">Variations (Lightness)</div>
-                <div className="flex h-12 rounded-md overflow-hidden border border-border-base">
-                  {[10, 30, 50, 70, 90].map((l) => (
+             {/* Palette Generator */}
+             <div className="bg-panel-bg border border-border-base rounded-lg p-4 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center space-x-2">
+                      <Palette size={16} className="text-accent" />
+                      <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Palette Generator</span>
+                   </div>
+                   
+                   {/* Palette Type Selector */}
+                   <div className="relative group">
+                      <select 
+                        value={paletteType}
+                        onChange={(e) => setPaletteType(e.target.value as PaletteType)}
+                        className="appearance-none bg-element-bg text-text-primary text-xs font-medium rounded px-3 py-1.5 pr-8 border border-border-base focus:border-accent outline-none cursor-pointer"
+                      >
+                         <option value="analogous">Analogous</option>
+                         <option value="monochromatic">Monochromatic</option>
+                         <option value="complementary">Complementary</option>
+                         <option value="split-complementary">Split Complementary</option>
+                         <option value="triadic">Triadic</option>
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-5 gap-2 h-16">
+                  {paletteColors.map((c, i) => (
                      <div 
-                       key={l}
-                       className="flex-1 cursor-pointer hover:opacity-90 transition-opacity"
-                       style={{ backgroundColor: `hsl(${hsl.h}, ${hsl.s}%, ${l}%)` }}
-                       title={`hsl(${hsl.h}, ${hsl.s}%, ${l}%)`}
-                       onClick={() => handleCopy(`hsl(${hsl.h}, ${hsl.s}%, ${l}%)`, `l-${l}`)}
-                     />
+                       key={i}
+                       className="group relative rounded-md cursor-pointer hover:scale-[1.05] transition-transform shadow-sm border border-border-base overflow-hidden"
+                       style={{ backgroundColor: c }}
+                       onClick={() => handleCopy(c, `p-${i}`)}
+                     >
+                       {/* Hover Overlay */}
+                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {copyFeedback === `p-${i}` ? (
+                            <CheckCircle2 size={16} className="text-white" />
+                          ) : (
+                            <span className="text-[10px] text-white font-mono font-medium">{c}</span>
+                          )}
+                       </div>
+                     </div>
                   ))}
                 </div>
-                <div className="text-[10px] text-text-secondary mt-2 text-center">Click swatch to copy HSL</div>
+                <div className="text-[10px] text-text-secondary text-center">
+                   Click any color in the generated palette to copy its HEX code.
+                </div>
              </div>
 
           </div>
