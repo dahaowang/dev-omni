@@ -5,7 +5,8 @@ import {
   CheckCircle2, 
   Copy, 
   PanelLeft,
-  Filter
+  Filter,
+  Star
 } from 'lucide-react';
 import { ActionButton } from '../common/ActionButton';
 
@@ -13,9 +14,11 @@ interface DedupeToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [stats, setStats] = useState({ total: 0, unique: 0, removed: 0 });
@@ -71,7 +74,17 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
           </>
         )}
 
-        <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
+          <button 
+            onClick={onToggleFavorite} 
+            className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
+            title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+          >
+             <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
+          </button>
+        </div>
+        
         <div className="flex-1 electron-drag"></div>
       </div>
 

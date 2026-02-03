@@ -7,7 +7,8 @@ import {
   CheckCircle2, 
   Copy, 
   AlertCircle,
-  PanelLeft
+  PanelLeft,
+  Star
 } from 'lucide-react';
 import { ActionButton } from '../common/ActionButton';
 
@@ -15,9 +16,11 @@ interface JsonFormatterProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [isValid, setIsValid] = useState<boolean>(true);
@@ -118,7 +121,6 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       {/* Tool Header */}
       <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0">
         
-        {/* If sidebar is closed, we need to show the spacer for traffic lights and the toggle button */}
         {!isSidebarOpen && (
           <>
             <div className="w-[70px] h-full shrink-0 electron-drag" />
@@ -132,10 +134,17 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
           </>
         )}
 
-        {/* Current Tool Label */}
-        <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
+          <button 
+            onClick={onToggleFavorite} 
+            className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
+            title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+          >
+             <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
+          </button>
+        </div>
         
-        {/* Right side spacer to push content if needed, or actions */}
         <div className="flex-1 electron-drag"></div>
       </div>
 

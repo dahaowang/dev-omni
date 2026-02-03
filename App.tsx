@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ToolType } from './types';
 import { Sidebar } from './components/Sidebar';
 import { JsonFormatter } from './components/tools/JsonFormatter';
@@ -39,12 +39,36 @@ const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ToolType>('json');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Favorites State with Persistence
+  const [favorites, setFavorites] = useState<ToolType[]>(() => {
+    try {
+      const saved = localStorage.getItem('devomni-favorites');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('devomni-favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = (toolId: ToolType) => {
+    setFavorites(prev => 
+      prev.includes(toolId) 
+        ? prev.filter(id => id !== toolId)
+        : [...prev, toolId]
+    );
+  };
 
   const renderTool = () => {
     const commonProps = {
       isSidebarOpen,
       toggleSidebar: () => setIsSidebarOpen(!isSidebarOpen),
-      toolLabel: TOOL_LABELS[activeTool] || activeTool
+      toolLabel: TOOL_LABELS[activeTool] || activeTool,
+      isFavorite: favorites.includes(activeTool),
+      onToggleFavorite: () => toggleFavorite(activeTool)
     };
 
     switch (activeTool) {
@@ -85,6 +109,7 @@ const App: React.FC = () => {
         isOpen={isSidebarOpen}
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onSettingsClick={() => setIsSettingsOpen(true)}
+        favorites={favorites}
       />
       
       {/* Tool Container with Animation Key */}

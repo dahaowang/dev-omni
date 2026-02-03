@@ -4,18 +4,21 @@ import {
   Copy, 
   CheckCircle2, 
   Trash2,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Star
 } from 'lucide-react';
 
 interface Base64ToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
 type Mode = 'encode' | 'decode';
 
-export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [mode, setMode] = useState<Mode>('encode');
@@ -86,7 +89,16 @@ export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSid
               </button>
             </>
           )}
-          <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
+            <button 
+              onClick={onToggleFavorite} 
+              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
+              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            >
+               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
+            </button>
+          </div>
         </div>
 
         {/* Toolbar */}

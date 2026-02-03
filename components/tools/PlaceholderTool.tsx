@@ -1,13 +1,15 @@
 import React from 'react';
-import { LayoutTemplate, PanelLeft } from 'lucide-react';
+import { LayoutTemplate, PanelLeft, Star } from 'lucide-react';
 
 interface PlaceholderToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-export const PlaceholderTool: React.FC<PlaceholderToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const PlaceholderTool: React.FC<PlaceholderToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg">
       {/* Tool Header */}
@@ -23,7 +25,16 @@ export const PlaceholderTool: React.FC<PlaceholderToolProps> = ({ isSidebarOpen,
             </button>
           </>
         )}
-        <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
+        <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
+            <button 
+              onClick={onToggleFavorite} 
+              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
+              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            >
+               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
+            </button>
+        </div>
       </div>
       
       {/* Content */}
