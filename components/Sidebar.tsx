@@ -11,7 +11,8 @@ import {
   Settings, 
   Search,
   PanelLeft,
-  Binary
+  Binary,
+  Calculator
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -98,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
 
         {/* Converters Section */}
         <div className="px-2">
-          {(matchesSearch('converters') || matchesSearch('json') || matchesSearch('sql') || matchesSearch('url') || matchesSearch('base64')) && (
+          {(matchesSearch('converters') || matchesSearch('json') || matchesSearch('sql') || matchesSearch('url') || matchesSearch('base64') || matchesSearch('number')) && (
             <div className="text-xs font-semibold text-text-secondary px-3 mb-2 uppercase tracking-wider mt-2">Converters</div>
           )}
           <div className="space-y-1">
@@ -116,6 +117,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
                 onClick={() => setActiveTool('sql')} 
                 icon={<Database size={18} />} 
                 label="SQL Format" 
+              />
+            )}
+            {matchesSearch('number base') && (
+              <NavItem 
+                active={activeTool === 'number'} 
+                onClick={() => setActiveTool('number')} 
+                icon={<Calculator size={18} />} 
+                label="Number Base" 
               />
             )}
             {matchesSearch('url encode') && (

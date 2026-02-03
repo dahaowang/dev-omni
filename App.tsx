@@ -8,6 +8,7 @@ import { HashTool } from './components/tools/HashTool';
 import { UrlEncoderTool } from './components/tools/UrlEncoderTool';
 import { Base64Tool } from './components/tools/Base64Tool';
 import { SqlFormatterTool } from './components/tools/SqlFormatterTool';
+import { NumberConverterTool } from './components/tools/NumberConverterTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -18,6 +19,7 @@ const TOOL_LABELS: Record<string, string> = {
   sql: 'SQL Formatter',
   url: 'URL Encoder',
   base64: 'Base64 Converter',
+  number: 'Number Base',
   hash: 'Hash/MD5 Generator',
   diff: 'Text Diff',
   dedupe: 'Dedupe Lines'
@@ -52,6 +54,8 @@ const App: React.FC = () => {
         return <UrlEncoderTool {...commonProps} />;
       case 'base64':
         return <Base64Tool {...commonProps} />;
+      case 'number':
+        return <NumberConverterTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
