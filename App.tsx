@@ -5,6 +5,8 @@ import { JsonFormatter } from './components/tools/JsonFormatter';
 import { DedupeTool } from './components/tools/DedupeTool';
 import { DiffTool } from './components/tools/DiffTool';
 import { HashTool } from './components/tools/HashTool';
+import { UrlEncoderTool } from './components/tools/UrlEncoderTool';
+import { Base64Tool } from './components/tools/Base64Tool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -14,6 +16,7 @@ const TOOL_LABELS: Record<string, string> = {
   json: 'JSON Formatter',
   sql: 'SQL Formatter',
   url: 'URL Encoder',
+  base64: 'Base64 Converter',
   hash: 'Hash/MD5 Generator',
   diff: 'Text Diff',
   dedupe: 'Dedupe Lines'
@@ -42,6 +45,10 @@ const App: React.FC = () => {
         return <DiffTool {...commonProps} />;
       case 'hash':
         return <HashTool {...commonProps} />;
+      case 'url':
+        return <UrlEncoderTool {...commonProps} />;
+      case 'base64':
+        return <Base64Tool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }

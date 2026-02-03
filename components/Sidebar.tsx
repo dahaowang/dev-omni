@@ -10,7 +10,8 @@ import {
   Plus, 
   Settings, 
   Search,
-  PanelLeft
+  PanelLeft,
+  Binary
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -97,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
 
         {/* Converters Section */}
         <div className="px-2">
-          {(matchesSearch('converters') || matchesSearch('json') || matchesSearch('sql') || matchesSearch('url')) && (
+          {(matchesSearch('converters') || matchesSearch('json') || matchesSearch('sql') || matchesSearch('url') || matchesSearch('base64')) && (
             <div className="text-xs font-semibold text-text-secondary px-3 mb-2 uppercase tracking-wider mt-2">Converters</div>
           )}
           <div className="space-y-1">
@@ -123,6 +124,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
                 onClick={() => setActiveTool('url')} 
                 icon={<LinkIcon size={18} />} 
                 label="URL Encode" 
+              />
+            )}
+            {matchesSearch('base64') && (
+              <NavItem 
+                active={activeTool === 'base64'} 
+                onClick={() => setActiveTool('base64')} 
+                icon={<Binary size={18} />} 
+                label="Base64" 
               />
             )}
           </div>
