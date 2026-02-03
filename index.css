@@ -4,49 +4,52 @@
 
 @layer base {
   :root {
-    /* Default Dark Theme (Original) */
-    --color-app-bg: #13141f;
-    --color-sidebar-bg: #1e1e2e;
-    --color-panel-bg: #0d0e16;
-    --color-element-bg: #2d2d39; /* Buttons, secondary panels */
-    --color-border: #1f2937; /* gray-800 */
-    --color-border-hover: #374151; /* gray-700 */
-    --color-text-primary: #e5e7eb; /* gray-200 */
-    --color-text-secondary: #9ca3af; /* gray-400 */
-    --color-accent: #3b82f6; /* blue-500 */
-    --color-active-item: #3b3e4a;
-    --color-hover-overlay: rgba(255, 255, 255, 0.05);
-    --color-input-bg: #1a1b23;
+    /* Default Dark Theme (Refined Modern Zinc/Slate) */
+    /* Inspired by Linear/Untitled UI Dark */
+    --color-app-bg: #18181b; /* Zinc 900 - Main content area */
+    --color-sidebar-bg: #09090b; /* Zinc 950 - Darker sidebar for contrast */
+    --color-panel-bg: #27272a; /* Zinc 800 - Cards/Inputs */
+    --color-element-bg: #3f3f46; /* Zinc 700 - Buttons/Interactive */
+    --color-border: #27272a; /* Zinc 800 - Subtle borders */
+    --color-border-hover: #52525b; /* Zinc 600 */
+    --color-text-primary: #f4f4f5; /* Zinc 100 */
+    --color-text-secondary: #a1a1aa; /* Zinc 400 */
+    --color-accent: #6366f1; /* Indigo 500 - Professional Accent */
+    --color-active-item: #27272a; /* Zinc 800 */
+    --color-hover-overlay: rgba(255, 255, 255, 0.04);
+    --color-input-bg: #09090b; /* Zinc 950 */
   }
 
   [data-theme='light'] {
+    /* Refined Light Theme (Untitled UI Light) */
     --color-app-bg: #ffffff;
-    --color-sidebar-bg: #f3f4f6; /* gray-100 */
+    --color-sidebar-bg: #f9fafb; /* Gray 50 - Very subtle contrast */
     --color-panel-bg: #ffffff;
-    --color-element-bg: #ffffff;
-    --color-border: #e5e7eb; /* gray-200 */
-    --color-border-hover: #d1d5db; /* gray-300 */
-    --color-text-primary: #1f2937; /* gray-800 */
-    --color-text-secondary: #6b7280; /* gray-500 */
-    --color-accent: #2563eb; /* blue-600 */
-    --color-active-item: #e5e7eb; /* gray-200 */
-    --color-hover-overlay: rgba(0, 0, 0, 0.05);
-    --color-input-bg: #f9fafb; /* gray-50 */
+    --color-element-bg: #f3f4f6; /* Gray 100 */
+    --color-border: #e5e7eb; /* Gray 200 - Crisp borders */
+    --color-border-hover: #d1d5db; /* Gray 300 */
+    --color-text-primary: #111827; /* Gray 900 */
+    --color-text-secondary: #6b7280; /* Gray 500 */
+    --color-accent: #4f46e5; /* Indigo 600 - Slightly darker for light mode contrast */
+    --color-active-item: #f3f4f6; /* Gray 100 */
+    --color-hover-overlay: rgba(0, 0, 0, 0.04);
+    --color-input-bg: #ffffff;
   }
 
   [data-theme='midnight'] {
+    /* High Contrast / OLED / Deep Night */
     --color-app-bg: #000000;
-    --color-sidebar-bg: #0f0f0f;
-    --color-panel-bg: #050505;
-    --color-element-bg: #1a1a1a;
-    --color-border: #333333;
-    --color-border-hover: #444444;
-    --color-text-primary: #f3f4f6;
-    --color-text-secondary: #888888;
-    --color-accent: #6366f1; /* indigo-500 */
-    --color-active-item: #222222;
+    --color-sidebar-bg: #000000;
+    --color-panel-bg: #121212;
+    --color-element-bg: #262626;
+    --color-border: #262626; /* Neutral Gray 800 */
+    --color-border-hover: #404040;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #a3a3a3; /* Neutral 400 */
+    --color-accent: #a855f7; /* Purple 500 - Vibrant against black */
+    --color-active-item: #171717; /* Neutral 900 */
     --color-hover-overlay: rgba(255, 255, 255, 0.1);
-    --color-input-bg: #111111;
+    --color-input-bg: #0a0a0a;
   }
 }
 
@@ -56,11 +59,12 @@
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-app-bg); 
+  background: transparent; 
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-border); 
   border-radius: 5px;
+  border: 2px solid var(--color-app-bg); /* Padding effect */
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-secondary); 

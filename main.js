@@ -10,13 +10,13 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#13141f', // Matches your default dark theme background
+    backgroundColor: '#18181b', // Matches new Zinc-900 Dark theme background
     show: false, // Don't show the window until content is ready
     // We use a custom title bar in the UI, so we hide the system one
     titleBarStyle: 'hidden', 
     titleBarOverlay: {
-      color: '#1e1e2e',
-      symbolColor: '#9ca3af',
+      color: '#09090b', // Matches new Sidebar Zinc-950
+      symbolColor: '#a1a1aa', // Zinc-400
       height: 48 // Match the height of our header
     },
     webPreferences: {
