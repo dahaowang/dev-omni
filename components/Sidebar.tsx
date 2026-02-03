@@ -37,22 +37,22 @@ interface ToolConfig {
 
 const TOOLS: ToolConfig[] = [
   // Converters
-  { id: 'json', label: 'JSON Format', icon: <Braces size={18} />, category: 'converters', keywords: ['json', 'format', 'lint'] },
-  { id: 'yaml', label: 'JSON <> YAML', icon: <FileCode size={18} />, category: 'converters', keywords: ['yaml', 'convert'] },
-  { id: 'sql', label: 'SQL Format', icon: <Database size={18} />, category: 'converters', keywords: ['sql', 'format', 'query'] },
-  { id: 'number', label: 'Number Base', icon: <Calculator size={18} />, category: 'converters', keywords: ['hex', 'binary', 'decimal'] },
-  { id: 'url', label: 'URL Encode', icon: <LinkIcon size={18} />, category: 'converters', keywords: ['url', 'encode', 'decode'] },
-  { id: 'base64', label: 'Base64', icon: <Binary size={18} />, category: 'converters', keywords: ['base64', 'encode', 'decode'] },
+  { id: 'json', label: 'JSON Format', icon: <Braces size={16} />, category: 'converters', keywords: ['json', 'format', 'lint'] },
+  { id: 'yaml', label: 'JSON <> YAML', icon: <FileCode size={16} />, category: 'converters', keywords: ['yaml', 'convert'] },
+  { id: 'sql', label: 'SQL Format', icon: <Database size={16} />, category: 'converters', keywords: ['sql', 'format', 'query'] },
+  { id: 'number', label: 'Number Base', icon: <Calculator size={16} />, category: 'converters', keywords: ['hex', 'binary', 'decimal'] },
+  { id: 'url', label: 'URL Encode', icon: <LinkIcon size={16} />, category: 'converters', keywords: ['url', 'encode', 'decode'] },
+  { id: 'base64', label: 'Base64', icon: <Binary size={16} />, category: 'converters', keywords: ['base64', 'encode', 'decode'] },
   
   // Generators
-  { id: 'timestamp', label: 'Timestamp', icon: <Clock size={18} />, category: 'generators', keywords: ['time', 'date', 'epoch'] },
-  { id: 'color', label: 'Color Picker', icon: <Palette size={18} />, category: 'generators', keywords: ['color', 'hex', 'rgb'] },
-  { id: 'random-string', label: 'Random String', icon: <Dices size={18} />, category: 'generators', keywords: ['random', 'password', 'string'] },
-  { id: 'hash', label: 'Hash/MD5', icon: <Hash size={18} />, category: 'generators', keywords: ['hash', 'md5', 'sha'] },
+  { id: 'timestamp', label: 'Timestamp', icon: <Clock size={16} />, category: 'generators', keywords: ['time', 'date', 'epoch'] },
+  { id: 'color', label: 'Color Picker', icon: <Palette size={16} />, category: 'generators', keywords: ['color', 'hex', 'rgb'] },
+  { id: 'random-string', label: 'Random String', icon: <Dices size={16} />, category: 'generators', keywords: ['random', 'password', 'string'] },
+  { id: 'hash', label: 'Hash/MD5', icon: <Hash size={16} />, category: 'generators', keywords: ['hash', 'md5', 'sha'] },
   
   // Text
-  { id: 'diff', label: 'Diff', icon: <Scissors size={18} />, category: 'text', keywords: ['diff', 'compare'] },
-  { id: 'dedupe', label: 'Dedupe', icon: <Files size={18} />, category: 'text', keywords: ['dedupe', 'unique', 'list'] },
+  { id: 'diff', label: 'Diff', icon: <Scissors size={16} />, category: 'text', keywords: ['diff', 'compare'] },
+  { id: 'dedupe', label: 'Dedupe', icon: <Files size={16} />, category: 'text', keywords: ['dedupe', 'unique', 'list'] },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isOpen, toggleSidebar, onSettingsClick, favorites }) => {
@@ -71,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
       <button 
         key={tool.id}
         onClick={() => setActiveTool(tool.id)}
-        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-all duration-200 group ${
+        className={`w-full flex items-center space-x-3 px-3 py-1.5 rounded-md transition-all duration-200 group ${
           active 
             ? 'bg-active-item text-text-primary font-medium' 
             : 'text-text-secondary hover:text-text-primary hover:bg-hover-overlay'
@@ -80,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
         <div className={`transition-colors ${active ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`}>
           {tool.icon}
         </div>
-        <span className="text-sm truncate">{tool.label}</span>
+        <span className="text-xs font-medium truncate">{tool.label}</span>
       </button>
     );
   };
@@ -88,8 +88,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
   const renderSection = (title: string, tools: ToolConfig[]) => {
     if (tools.length === 0) return null;
     return (
-      <div className="mb-6">
-        <div className="text-xs font-bold text-text-secondary px-3 mb-2 uppercase tracking-wider">{title}</div>
+      <div className="mb-4">
+        <div className="text-[10px] font-bold text-text-secondary px-3 mb-1.5 uppercase tracking-wider opacity-80">{title}</div>
         <div className="space-y-0.5 px-2">
           {tools.map(renderNavItem)}
         </div>
@@ -103,16 +103,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
     <div className="w-64 bg-sidebar-bg h-full flex flex-col border-r border-border-base flex-shrink-0 transition-colors duration-200">
       
       {/* Top Region: Drag + Search */}
-      <div className="pt-8 pb-3 px-4 electron-drag flex flex-col gap-3 shrink-0">
-         {/* Search Box - Matches screenshot style */}
+      <div className="pt-8 pb-2 px-3 electron-drag flex flex-col gap-2 shrink-0">
+         {/* Search Box - Compacted */}
          <div className="relative group electron-no-drag">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary group-focus-within:text-accent transition-colors" size={15} />
+          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-text-secondary group-focus-within:text-accent transition-colors" size={13} />
           <input 
             type="text" 
             placeholder="Search tools..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-input-bg border border-border-base text-sm text-text-primary rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-all placeholder-text-secondary shadow-sm"
+            className="w-full bg-input-bg border border-border-base text-xs text-text-primary rounded-md pl-8 pr-2 py-1.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-all placeholder-text-secondary shadow-sm"
           />
         </div>
       </div>
@@ -131,20 +131,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
       </div>
 
       {/* Bottom Actions */}
-      <div className="p-3 border-t border-border-base flex items-center justify-between bg-sidebar-bg">
+      <div className="p-2 border-t border-border-base flex items-center justify-between bg-sidebar-bg shrink-0">
          <button 
           onClick={onSettingsClick}
-          className="p-2 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded-md transition-colors"
+          className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded-md transition-colors"
           title="Settings"
         >
-          <Settings size={20} />
+          <Settings size={18} />
          </button>
          
          <button 
           onClick={toggleSidebar}
-          className="p-2 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded-md transition-colors md:hidden"
+          className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded-md transition-colors"
+          title="Collapse Sidebar"
         >
-          <PanelLeft size={20} />
+          <PanelLeft size={18} />
          </button>
       </div>
     </div>

@@ -113,31 +113,37 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
 
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Optimized Header */}
-      <div className="h-16 flex items-center px-6 bg-app-bg electron-drag select-none shrink-0 border-b border-transparent">
-        {!isSidebarOpen && (
-          <button 
-            onClick={toggleSidebar} 
-            className="electron-no-drag mr-4 p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-            title="Open Sidebar"
-          >
-            <PanelLeft size={20} />
-          </button>
-        )}
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-text-primary tracking-tight">{toolLabel}</h2>
-          <button 
-            onClick={onToggleFavorite} 
-            className="electron-no-drag text-text-secondary hover:text-accent transition-colors pt-1"
-            title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-          >
-             <Star size={18} className={isFavorite ? "fill-accent text-accent" : ""} />
-          </button>
+      {/* Standard Header */}
+      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
+        <div className="flex items-center">
+          {!isSidebarOpen && (
+            <>
+              {/* Traffic Light Spacer for macOS */}
+              <div className="w-[70px] h-full shrink-0 electron-drag" />
+              <button 
+                onClick={toggleSidebar} 
+                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
+                title="Open Sidebar"
+              >
+                <PanelLeft size={18} />
+              </button>
+            </>
+          )}
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
+            <button 
+              onClick={onToggleFavorite} 
+              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
+              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            >
+               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden p-6 pt-0">
+      <div className="flex-1 flex overflow-hidden p-6 pt-4">
         
         {/* Input Pane */}
         <div className="flex-1 flex flex-col min-w-0 bg-app-bg pr-2">
