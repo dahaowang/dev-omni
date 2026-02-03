@@ -12,6 +12,7 @@ import { NumberConverterTool } from './components/tools/NumberConverterTool';
 import { JsonToYamlTool } from './components/tools/JsonToYamlTool';
 import { TimestampTool } from './components/tools/TimestampTool';
 import { ColorPickerTool } from './components/tools/ColorPickerTool';
+import { RandomStringTool } from './components/tools/RandomStringTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -26,6 +27,7 @@ const TOOL_LABELS: Record<string, string> = {
   yaml: 'JSON <> YAML',
   timestamp: 'Timestamp Generator',
   color: 'Color Picker',
+  'random-string': 'Random String',
   hash: 'Hash/MD5 Generator',
   diff: 'Text Diff',
   dedupe: 'Dedupe Lines'
@@ -68,6 +70,8 @@ const App: React.FC = () => {
         return <TimestampTool {...commonProps} />;
       case 'color':
         return <ColorPickerTool {...commonProps} />;
+      case 'random-string':
+        return <RandomStringTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }

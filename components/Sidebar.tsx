@@ -15,7 +15,8 @@ import {
   Calculator,
   FileCode,
   Clock,
-  Palette
+  Palette,
+  Dices
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -159,7 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
 
         {/* Generators Section */}
         <div className="px-2">
-          {(matchesSearch('generators') || matchesSearch('hash') || matchesSearch('timestamp') || matchesSearch('color')) && (
+          {(matchesSearch('generators') || matchesSearch('hash') || matchesSearch('timestamp') || matchesSearch('color') || matchesSearch('random string')) && (
              <div className="text-xs font-semibold text-text-secondary px-3 mb-2 uppercase tracking-wider mt-2">Generators</div>
           )}
           <div className="space-y-1">
@@ -177,6 +178,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
                 onClick={() => setActiveTool('color')} 
                 icon={<Palette size={18} />} 
                 label="Color Picker" 
+              />
+             )}
+             {matchesSearch('random string') && (
+              <NavItem 
+                active={activeTool === 'random-string'} 
+                onClick={() => setActiveTool('random-string')} 
+                icon={<Dices size={18} />} 
+                label="Random String" 
               />
              )}
              {matchesSearch('hash/md5') && (

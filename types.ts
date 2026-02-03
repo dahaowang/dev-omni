@@ -5,4 +5,4 @@ export interface NavItem {
   category: 'favorites' | 'converters' | 'generators' | 'text' | 'all';
 }
 
-export type ToolType = 'json' | 'sql' | 'url' | 'hash' | 'diff' | 'dedupe' | 'base64' | 'number' | 'yaml' | 'timestamp' | 'color';
+export type ToolType = 'json' | 'sql' | 'url' | 'hash' | 'diff' | 'dedupe' | 'base64' | 'number' | 'yaml' | 'timestamp' | 'color' | 'random-string';
