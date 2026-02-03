@@ -24,6 +24,27 @@
     --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
   }
 
+  [data-theme='graphite'] {
+    /* Modern Grey Theme (Requested Style) */
+    --color-app-bg: #292929;       /* Deep Grey Background */
+    --color-sidebar-bg: #222222;   /* Slightly darker sidebar for hierarchy */
+    --color-panel-bg: #393939;     /* Lighter Grey Cards (Floating effect) */
+    --color-element-bg: #4a4a4a;   /* Elements on top of cards */
+    --color-input-bg: #222222;     /* Dark inset for inputs */
+    
+    --color-border: #444444;       /* Softer grey borders */
+    --color-border-hover: #555555;
+    
+    --color-text-primary: #ffffff;   /* Pure White */
+    --color-text-secondary: #a3a3a3; /* Light Grey */
+    
+    --color-accent: #2dd4bf;         /* Keep Brand Teal */
+    --color-active-item: #393939;    /* Active state matches panel */
+    --color-hover-overlay: rgba(255, 255, 255, 0.08);
+    
+    --shadow-card: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 4px 12px -2px rgba(0, 0, 0, 0.2); /* Stronger shadows for floating feel */
+  }
+
   [data-theme='light'] {
     /* Refined Light Theme */
     --color-app-bg: #f3f4f6;

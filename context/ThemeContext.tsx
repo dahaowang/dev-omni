@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type ThemeName = 'dark' | 'light';
+export type ThemeName = 'dark' | 'light' | 'graphite';
 
 interface ThemeContextType {
   theme: ThemeName;
@@ -14,7 +14,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setTheme] = useState<ThemeName>(() => {
     const saved = localStorage.getItem('devomni-theme');
     // Basic validation to fallback if saved theme is no longer supported
-    if (saved === 'dark' || saved === 'light') {
+    if (saved === 'dark' || saved === 'light' || saved === 'graphite') {
       return saved as ThemeName;
     }
     return 'dark';

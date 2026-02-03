@@ -41,7 +41,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       onChange={(e) => setTheme(e.target.value as ThemeName)}
                       className="appearance-none bg-element-bg border border-border-base text-text-primary text-sm rounded-md pl-3 pr-8 py-1.5 focus:outline-none focus:border-accent cursor-pointer transition-colors hover:border-border-hover min-w-[120px]"
                     >
-                      <option value="dark">Dark</option>
+                      <option value="dark">Dark (OLED)</option>
+                      <option value="graphite">Graphite (Modern)</option>
                       <option value="light">Light</option>
                     </select>
                     <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
