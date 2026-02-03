@@ -114,9 +114,9 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#13141f] text-gray-300">
+    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
       {/* Tool Header */}
-      <div className="h-12 border-b border-gray-800 flex items-center px-4 bg-[#13141f] electron-drag select-none shrink-0">
+      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0">
         
         {/* If sidebar is closed, we need to show the spacer for traffic lights and the toggle button */}
         {!isSidebarOpen && (
@@ -124,7 +124,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
             <div className="w-[70px] h-full shrink-0 electron-drag" />
             <button 
               onClick={toggleSidebar} 
-              className="electron-no-drag p-1 mr-3 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
+              className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
               title="Open Sidebar"
             >
               <PanelLeft size={18} />
@@ -133,7 +133,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
         )}
 
         {/* Current Tool Label */}
-        <h2 className="text-sm font-semibold text-gray-200 tracking-wide">{toolLabel}</h2>
+        <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
         
         {/* Right side spacer to push content if needed, or actions */}
         <div className="flex-1 electron-drag"></div>
@@ -143,16 +143,16 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       <div className="flex-1 flex overflow-hidden">
         
         {/* Input Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#13141f] p-4 pr-0">
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-0">
           <div className="flex items-center justify-between mb-2 pl-1 pr-4">
-             <div className="text-sm font-medium text-gray-400">Input (Paste JSON)</div>
-             <button onClick={handleClear} className="text-xs text-gray-500 hover:text-red-400 flex items-center gap-1 transition-colors">
+             <div className="text-sm font-medium text-text-secondary">Input (Paste JSON)</div>
+             <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
                <Trash2 size={12} /> Clear
              </button>
           </div>
-          <div className="flex-1 bg-[#0d0e16] rounded-lg border border-gray-800 overflow-hidden relative group hover:border-gray-700 transition-colors">
+          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
             {/* Line Numbers Fake */}
-            <div className="absolute left-0 top-0 bottom-0 w-10 bg-[#1a1b23] border-r border-gray-800 pt-4 text-right pr-2 text-gray-600 font-mono text-xs select-none">
+            <div className="absolute left-0 top-0 bottom-0 w-10 bg-input-bg border-r border-border-base pt-4 text-right pr-2 text-text-secondary font-mono text-xs select-none">
               {Array.from({ length: Math.min(stats.lines, 20) }).map((_, i) => (
                 <div key={i} className="leading-6">{i + 1}</div>
               ))}
@@ -163,7 +163,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
               spellCheck={false}
               value={input}
               onChange={handleInputChange}
-              className="w-full h-full bg-transparent resize-none focus:outline-none p-4 pl-12 font-mono text-sm leading-6 text-gray-300 placeholder-gray-700"
+              className="w-full h-full bg-transparent resize-none focus:outline-none p-4 pl-12 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
               placeholder='Paste your JSON here...'
             />
           </div>
@@ -177,21 +177,21 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
         </div>
 
         {/* Output Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#13141f] p-4 pl-0">
-          <div className="text-sm font-medium text-gray-400 mb-2 pl-1">Output (Result)</div>
-          <div className="flex-1 bg-[#0d0e16] rounded-lg border border-gray-800 overflow-hidden relative group hover:border-gray-700 transition-colors">
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-0">
+          <div className="text-sm font-medium text-text-secondary mb-2 pl-1">Output (Result)</div>
+          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
             <textarea
               readOnly
               spellCheck={false}
               value={output}
-              className={`w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 ${isValid ? 'text-blue-300' : 'text-red-400'}`}
+              className={`w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 ${isValid ? 'text-accent' : 'text-red-400'}`}
               placeholder='Result will appear here...'
             />
             
             {/* Copy Button */}
             <button 
               onClick={handleCopy}
-              className="absolute bottom-4 right-4 bg-[#2d2d39] hover:bg-[#3d3d4d] text-gray-200 px-4 py-2 rounded-md shadow-lg border border-gray-700 flex items-center space-x-2 transition-all active:scale-95"
+              className="absolute bottom-4 right-4 bg-element-bg hover:brightness-110 text-text-primary px-4 py-2 rounded-md shadow-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95"
             >
               {copyFeedback ? <CheckCircle2 size={16} className="text-green-500"/> : <Copy size={16} />}
               <span className="text-sm font-medium">{copyFeedback ? 'Copied!' : 'Copy Result'}</span>
@@ -201,11 +201,11 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       </div>
 
       {/* Status Bar */}
-      <div className="h-8 bg-[#1a1b23] border-t border-gray-800 flex items-center px-4 justify-between text-xs text-gray-500 shrink-0">
+      <div className="h-8 bg-sidebar-bg border-t border-border-base flex items-center px-4 justify-between text-xs text-text-secondary shrink-0">
         <div className="flex items-center space-x-4">
-          <span>Characters: <span className="text-gray-300">{stats.chars}</span></span>
-          <span className="w-px h-3 bg-gray-700"></span>
-          <span>Lines: <span className="text-gray-300">{stats.lines}</span></span>
+          <span>Characters: <span className="text-text-primary">{stats.chars}</span></span>
+          <span className="w-px h-3 bg-border-base"></span>
+          <span>Lines: <span className="text-text-primary">{stats.lines}</span></span>
         </div>
         
         <div className="flex items-center space-x-2">
@@ -222,10 +222,10 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
                </div>
              )
            )}
-           <span className="w-px h-3 bg-gray-700 mx-2"></span>
-           <span className="text-gray-500">UTF-8</span>
-           <span className="w-px h-3 bg-gray-700 mx-2"></span>
-           <span className="text-gray-500">JSON</span>
+           <span className="w-px h-3 bg-border-base mx-2"></span>
+           <span className="text-text-secondary">UTF-8</span>
+           <span className="w-px h-3 bg-border-base mx-2"></span>
+           <span className="text-text-secondary">JSON</span>
         </div>
       </div>
     </div>

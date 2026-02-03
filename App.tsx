@@ -3,6 +3,7 @@ import { ToolType } from './types';
 import { Sidebar } from './components/Sidebar';
 import { JsonFormatter } from './components/tools/JsonFormatter';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
+import { SettingsModal } from './components/modals/SettingsModal';
 
 // --- Configuration ---
 
@@ -20,6 +21,7 @@ const TOOL_LABELS: Record<string, string> = {
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ToolType>('json');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const renderTool = () => {
     const commonProps = {
@@ -37,14 +39,20 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-row h-screen w-full bg-[#13141f] text-white font-sans overflow-hidden selection:bg-blue-500/30">
+    <div className="flex flex-row h-screen w-full bg-app-bg text-text-primary font-sans overflow-hidden selection:bg-accent/30">
       <Sidebar 
         activeTool={activeTool} 
         setActiveTool={setActiveTool} 
         isOpen={isSidebarOpen}
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        onSettingsClick={() => setIsSettingsOpen(true)}
       />
       {renderTool()}
+      
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
     </div>
   );
 };

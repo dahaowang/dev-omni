@@ -7,15 +7,38 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        gray: {
-          750: '#2d2d39',
-          850: '#1a1b23',
-          900: '#13141f',
-          950: '#0d0e16',
+        // Semantic Colors mapped to CSS Variables
+        app: {
+          bg: 'var(--color-app-bg)',
+        },
+        sidebar: {
+          bg: 'var(--color-sidebar-bg)',
+        },
+        panel: {
+          bg: 'var(--color-panel-bg)',
+        },
+        element: {
+          bg: 'var(--color-element-bg)',
+        },
+        input: {
+          bg: 'var(--color-input-bg)',
+        },
+        border: {
+          base: 'var(--color-border)',
+          hover: 'var(--color-border-hover)',
+        },
+        text: {
+          primary: 'var(--color-text-primary)',
+          secondary: 'var(--color-text-secondary)',
         },
         accent: {
-          500: '#3b82f6', // blue
-          600: '#2563eb',
+          DEFAULT: 'var(--color-accent)',
+        },
+        active: {
+          item: 'var(--color-active-item)',
+        },
+        hover: {
+          overlay: 'var(--color-hover-overlay)',
         }
       },
       fontFamily: {
