@@ -37,19 +37,19 @@
   }
 
   [data-theme='midnight'] {
-    /* High Contrast / OLED / Deep Night */
-    --color-app-bg: #000000;
-    --color-sidebar-bg: #000000;
-    --color-panel-bg: #121212;
-    --color-element-bg: #262626;
-    --color-border: #262626; /* Neutral Gray 800 */
+    /* Raycast Inspired (OLED Black + Purple Accent) */
+    --color-app-bg: #050505; /* Near Pitch Black */
+    --color-sidebar-bg: #000000; /* Pure Black */
+    --color-panel-bg: #161616; /* Deep Gray Card */
+    --color-element-bg: #262626; /* Interactables */
+    --color-border: #2A2A2A; /* Very Low Contrast Border */
     --color-border-hover: #404040;
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #a3a3a3; /* Neutral 400 */
-    --color-accent: #a855f7; /* Purple 500 - Vibrant against black */
-    --color-active-item: #171717; /* Neutral 900 */
-    --color-hover-overlay: rgba(255, 255, 255, 0.1);
-    --color-input-bg: #0a0a0a;
+    --color-text-primary: #FFFFFF; /* Pure White */
+    --color-text-secondary: #888888; /* Dimmed Gray */
+    --color-accent: #C084FC; /* Vivid Purple */
+    --color-active-item: #1A1A1A; /* Subtle selection background */
+    --color-hover-overlay: rgba(255, 255, 255, 0.08);
+    --color-input-bg: #0A0A0A;
   }
 
   [data-theme='untitled'] {
