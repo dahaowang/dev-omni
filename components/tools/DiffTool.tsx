@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   PanelLeft, 
   Split, 
@@ -8,7 +8,8 @@ import {
   Copy,
   CheckCircle2,
   MinusCircle,
-  PlusCircle
+  PlusCircle,
+  Loader2
 } from 'lucide-react';
 
 interface DiffToolProps {
@@ -35,47 +36,88 @@ interface DiffRow {
   right?: DiffRowItem;
 }
 
-// Simple LCS based Diff Algorithm
+// Optimized Diff Algorithm
 const computeLineDiff = (text1: string, text2: string): DiffLine[] => {
   const lines1 = text1.split(/\r?\n/);
   const lines2 = text2.split(/\r?\n/);
-  
-  if (text1 === '' && text2 === '') return [];
-  if (text1 === '') return lines2.map(l => ({ type: 'added', content: l }));
-  if (text2 === '') return lines1.map(l => ({ type: 'removed', content: l }));
 
-  const m = lines1.length;
-  const n = lines2.length;
-  
-  const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
-  
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (lines1[i - 1] === lines2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1;
-      } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+  // 1. Prefix Optimization
+  let start = 0;
+  while (
+    start < lines1.length && 
+    start < lines2.length && 
+    lines1[start] === lines2[start]
+  ) {
+    start++;
+  }
+
+  // 2. Suffix Optimization
+  let end1 = lines1.length - 1;
+  let end2 = lines2.length - 1;
+  while (
+    end1 >= start && 
+    end2 >= start && 
+    lines1[end1] === lines2[end2]
+  ) {
+    end1--;
+    end2--;
+  }
+
+  // The middle part that actually changed
+  const mid1 = lines1.slice(start, end1 + 1);
+  const mid2 = lines2.slice(start, end2 + 1);
+
+  let diffs: DiffLine[] = [];
+
+  const m = mid1.length;
+  const n = mid2.length;
+
+  // Handle empty middle cases (pure additions or removals)
+  if (m === 0) {
+    diffs = mid2.map(l => ({ type: 'added', content: l }));
+  } else if (n === 0) {
+    diffs = mid1.map(l => ({ type: 'removed', content: l }));
+  } else {
+    // LCS with flattened 1D array for memory efficiency
+    const width = n + 1;
+    const dp = new Int32Array((m + 1) * width);
+    
+    // Accessor helpers inline (compiler optimizes these in JS usually, but manual indexing is safer for perf)
+    // dp[i * width + j]
+    
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (mid1[i - 1] === mid2[j - 1]) {
+          dp[i * width + j] = dp[(i - 1) * width + (j - 1)] + 1;
+        } else {
+          const up = dp[(i - 1) * width + j];
+          const left = dp[i * width + (j - 1)];
+          dp[i * width + j] = up > left ? up : left;
+        }
+      }
+    }
+
+    // Backtrack to generate diff
+    let i = m, j = n;
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && mid1[i - 1] === mid2[j - 1]) {
+        diffs.unshift({ type: 'same', content: mid1[i - 1] });
+        i--; j--;
+      } else if (j > 0 && (i === 0 || dp[i * width + (j - 1)] >= dp[(i - 1) * width + j])) {
+        diffs.unshift({ type: 'added', content: mid2[j - 1] });
+        j--;
+      } else if (i > 0 && (j === 0 || dp[i * width + (j - 1)] < dp[(i - 1) * width + j])) {
+        diffs.unshift({ type: 'removed', content: mid1[i - 1] });
+        i--;
       }
     }
   }
-  
-  let i = m, j = n;
-  const diffs: DiffLine[] = [];
-  
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && lines1[i - 1] === lines2[j - 1]) {
-      diffs.unshift({ type: 'same', content: lines1[i - 1] });
-      i--; j--;
-    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      diffs.unshift({ type: 'added', content: lines2[j - 1] });
-      j--;
-    } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
-      diffs.unshift({ type: 'removed', content: lines1[i - 1] });
-      i--;
-    }
-  }
-  
-  return diffs;
+
+  // Reconstruct full result
+  const prefix = lines1.slice(0, start).map(l => ({ type: 'same', content: l } as DiffLine));
+  const suffix = lines1.slice(end1 + 1).map(l => ({ type: 'same', content: l } as DiffLine));
+
+  return [...prefix, ...diffs, ...suffix];
 };
 
 // Align diffs side-by-side
@@ -125,12 +167,32 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
   const [modified, setModified] = useState('');
   const [mode, setMode] = useState<'edit' | 'view'>('edit');
   const [copyFeedback, setCopyFeedback] = useState(false);
+  
+  // Debounce State
+  const [debouncedOriginal, setDebouncedOriginal] = useState('');
+  const [debouncedModified, setDebouncedModified] = useState('');
+  const [isComputing, setIsComputing] = useState(false);
+
+  // Debounce Effect
+  useEffect(() => {
+    if (mode === 'view') {
+      setIsComputing(true);
+      const handler = setTimeout(() => {
+        setDebouncedOriginal(original);
+        setDebouncedModified(modified);
+        setIsComputing(false);
+      }, 600); // 600ms debounce
+
+      return () => clearTimeout(handler);
+    }
+  }, [original, modified, mode]);
 
   // Compute diffs and stats
   const { rows, stats } = useMemo(() => {
     if (mode !== 'view') return { rows: [], stats: { added: 0, removed: 0, total: 0 } };
     
-    const linearDiff = computeLineDiff(original, modified);
+    // Use debounced values here
+    const linearDiff = computeLineDiff(debouncedOriginal, debouncedModified);
     const calculatedRows = processDiffToRows(linearDiff);
     
     const added = linearDiff.filter(l => l.type === 'added').length;
@@ -138,7 +200,7 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
     const total = linearDiff.length;
 
     return { rows: calculatedRows, stats: { added, removed, total } };
-  }, [original, modified, mode]);
+  }, [debouncedOriginal, debouncedModified, mode]);
 
   const handleSwap = () => {
     setOriginal(modified);
@@ -152,9 +214,6 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
   };
 
   const handleCopyResult = () => {
-    // For copy, we might want to copy a patch format or just the modified text. 
-    // Assuming user wants the modified text usually, or maybe a unified diff.
-    // Given the UI shows "Copy" typically for the result, let's copy the Modified text.
     navigator.clipboard.writeText(modified);
     setCopyFeedback(true);
     setTimeout(() => setCopyFeedback(false), 2000);
@@ -255,14 +314,23 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
             {/* Stats Header */}
             <div className="bg-app-bg border-b border-border-base py-3 px-6 flex items-center justify-between shrink-0">
                <div className="flex items-center space-x-6">
-                 <div className="flex items-center space-x-2 text-red-400">
-                    <MinusCircle size={16} />
-                    <span className="font-semibold text-sm">{stats.removed} removals</span>
-                 </div>
-                 <div className="flex items-center space-x-2 text-green-500">
-                    <PlusCircle size={16} />
-                    <span className="font-semibold text-sm">{stats.added} additions</span>
-                 </div>
+                 {isComputing ? (
+                   <div className="flex items-center space-x-2 text-text-secondary">
+                     <Loader2 size={16} className="animate-spin" />
+                     <span className="text-sm font-medium">Computing diff...</span>
+                   </div>
+                 ) : (
+                   <>
+                     <div className="flex items-center space-x-2 text-red-400">
+                        <MinusCircle size={16} />
+                        <span className="font-semibold text-sm">{stats.removed} removals</span>
+                     </div>
+                     <div className="flex items-center space-x-2 text-green-500">
+                        <PlusCircle size={16} />
+                        <span className="font-semibold text-sm">{stats.added} additions</span>
+                     </div>
+                   </>
+                 )}
                </div>
 
                <div className="flex items-center space-x-4">
@@ -278,7 +346,7 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
             </div>
 
             {/* Diff View */}
-            <div className="flex-1 overflow-auto bg-app-bg">
+            <div className={`flex-1 overflow-auto bg-app-bg ${isComputing ? 'opacity-50 pointer-events-none' : ''}`}>
               {rows.length === 0 ? (
                 <div className="p-8 text-center text-text-secondary">No differences found or empty inputs.</div>
               ) : (
