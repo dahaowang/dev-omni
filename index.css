@@ -44,27 +44,6 @@
     
     --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   }
-
-  [data-theme='midnight'] {
-    /* OLED Black */
-    --color-app-bg: #000000;
-    --color-sidebar-bg: #000000;
-    --color-panel-bg: #111111;
-    --color-element-bg: #222222;
-    --color-input-bg: #050505;
-    
-    --color-border: #333333;
-    --color-border-hover: #444444;
-    
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #888888;
-    
-    --color-accent: #c084fc;
-    --color-active-item: #111111;
-    --color-hover-overlay: rgba(255, 255, 255, 0.08);
-    
-    --shadow-card: none;
-  }
 }
 
 body {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Moon, Sun, Monitor } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 import { useTheme, ThemeName } from '../../context/ThemeContext';
 
 interface SettingsModalProps {
@@ -33,32 +33,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-3">Appearance & Behavior</h3>
               
               <div className="bg-panel-bg rounded-lg border border-border-base p-4 transition-colors duration-300">
-                <label className="text-sm font-medium text-text-primary block mb-3">Theme</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <ThemeOption 
-                    id="dark" 
-                    label="Dark" 
-                    currentTheme={theme} 
-                    onSelect={setTheme} 
-                    icon={<Moon size={18} />}
-                    previewColor="#18181b" 
-                  />
-                  <ThemeOption 
-                    id="light" 
-                    label="Light" 
-                    currentTheme={theme} 
-                    onSelect={setTheme} 
-                    icon={<Sun size={18} />}
-                    previewColor="#ffffff"
-                  />
-                  <ThemeOption 
-                    id="midnight" 
-                    label="Midnight" 
-                    currentTheme={theme} 
-                    onSelect={setTheme} 
-                    icon={<Monitor size={18} />} 
-                    previewColor="#000000"
-                  />
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-text-primary">Theme</label>
+                  <div className="relative">
+                    <select
+                      value={theme}
+                      onChange={(e) => setTheme(e.target.value as ThemeName)}
+                      className="appearance-none bg-element-bg border border-border-base text-text-primary text-sm rounded-md pl-3 pr-8 py-1.5 focus:outline-none focus:border-accent cursor-pointer transition-colors hover:border-border-hover min-w-[120px]"
+                    >
+                      <option value="dark">Dark</option>
+                      <option value="light">Light</option>
+                    </select>
+                    <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -92,38 +79,5 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         </div>
       </div>
     </div>
-  );
-};
-
-const ThemeOption: React.FC<{ 
-  id: ThemeName; 
-  label: string; 
-  currentTheme: ThemeName; 
-  onSelect: (t: ThemeName) => void;
-  icon: React.ReactNode;
-  previewColor: string;
-}> = ({ id, label, currentTheme, onSelect, icon, previewColor }) => {
-  const isSelected = currentTheme === id;
-  return (
-    <button
-      onClick={() => onSelect(id)}
-      className={`relative flex flex-col items-center p-3 rounded-md border-2 transition-all duration-200 active:scale-95 ${
-        isSelected 
-          ? 'border-accent bg-active-item' 
-          : 'border-transparent hover:bg-hover-overlay'
-      }`}
-    >
-      <div 
-        className="w-full h-10 rounded mb-2 border border-border-base shadow-sm transition-transform duration-300 hover:scale-105"
-        style={{ backgroundColor: previewColor }}
-      ></div>
-      <div className="flex items-center space-x-2 text-text-primary">
-        {icon}
-        <span className="text-sm font-medium">{label}</span>
-      </div>
-      {isSelected && (
-        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent ring-2 ring-panel-bg animate-scale-in"></div>
-      )}
-    </button>
   );
 };
