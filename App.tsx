@@ -10,6 +10,7 @@ import { Base64Tool } from './components/tools/Base64Tool';
 import { SqlFormatterTool } from './components/tools/SqlFormatterTool';
 import { NumberConverterTool } from './components/tools/NumberConverterTool';
 import { JsonToYamlTool } from './components/tools/JsonToYamlTool';
+import { TimestampTool } from './components/tools/TimestampTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -22,6 +23,7 @@ const TOOL_LABELS: Record<string, string> = {
   base64: 'Base64 Converter',
   number: 'Number Base',
   yaml: 'JSON <> YAML',
+  timestamp: 'Timestamp Generator',
   hash: 'Hash/MD5 Generator',
   diff: 'Text Diff',
   dedupe: 'Dedupe Lines'
@@ -60,6 +62,8 @@ const App: React.FC = () => {
         return <NumberConverterTool {...commonProps} />;
       case 'yaml':
         return <JsonToYamlTool {...commonProps} />;
+      case 'timestamp':
+        return <TimestampTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }

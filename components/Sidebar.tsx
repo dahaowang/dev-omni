@@ -13,7 +13,8 @@ import {
   PanelLeft,
   Binary,
   Calculator,
-  FileCode
+  FileCode,
+  Clock
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -157,10 +158,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
 
         {/* Generators Section */}
         <div className="px-2">
-          {(matchesSearch('generators') || matchesSearch('hash')) && (
+          {(matchesSearch('generators') || matchesSearch('hash') || matchesSearch('timestamp')) && (
              <div className="text-xs font-semibold text-text-secondary px-3 mb-2 uppercase tracking-wider mt-2">Generators</div>
           )}
           <div className="space-y-1">
+             {matchesSearch('timestamp') && (
+              <NavItem 
+                active={activeTool === 'timestamp'} 
+                onClick={() => setActiveTool('timestamp')} 
+                icon={<Clock size={18} />} 
+                label="Timestamp" 
+              />
+             )}
              {matchesSearch('hash/md5') && (
               <NavItem 
                 active={activeTool === 'hash'} 
