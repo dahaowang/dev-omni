@@ -2,12 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { 
   PanelLeft, 
   Split, 
-  Eye, 
   Edit3, 
   ArrowRightLeft,
   Trash2,
-  Check,
-  X
+  Copy,
+  CheckCircle2,
+  MinusCircle,
+  PlusCircle
 } from 'lucide-react';
 
 interface DiffToolProps {
@@ -16,17 +17,29 @@ interface DiffToolProps {
   toolLabel: string;
 }
 
-type DiffLine = {
-  type: 'same' | 'added' | 'removed';
+type DiffType = 'same' | 'added' | 'removed';
+
+interface DiffLine {
+  type: DiffType;
   content: string;
-};
+}
+
+interface DiffRowItem {
+  type: DiffType;
+  content: string;
+  lineNumber: number;
+}
+
+interface DiffRow {
+  left?: DiffRowItem;
+  right?: DiffRowItem;
+}
 
 // Simple LCS based Diff Algorithm
 const computeLineDiff = (text1: string, text2: string): DiffLine[] => {
   const lines1 = text1.split(/\r?\n/);
   const lines2 = text2.split(/\r?\n/);
   
-  // Trimming for empty input edge case
   if (text1 === '' && text2 === '') return [];
   if (text1 === '') return lines2.map(l => ({ type: 'added', content: l }));
   if (text2 === '') return lines1.map(l => ({ type: 'removed', content: l }));
@@ -34,9 +47,6 @@ const computeLineDiff = (text1: string, text2: string): DiffLine[] => {
   const m = lines1.length;
   const n = lines2.length;
   
-  // Use a 1D array approach for space optimization if needed, 
-  // but standard 2D is easier for backtracking. 
-  // Limit text size in UI if necessary, but modern JS handles 2k*2k fine.
   const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
   
   for (let i = 1; i <= m; i++) {
@@ -68,16 +78,66 @@ const computeLineDiff = (text1: string, text2: string): DiffLine[] => {
   return diffs;
 };
 
+// Align diffs side-by-side
+const processDiffToRows = (diffs: DiffLine[]): DiffRow[] => {
+  const rows: DiffRow[] = [];
+  let bufferRemovals: DiffLine[] = [];
+  let bufferAdditions: DiffLine[] = [];
+  
+  let originalLineNum = 1;
+  let modifiedLineNum = 1;
+
+  const flushBuffers = () => {
+    const count = Math.max(bufferRemovals.length, bufferAdditions.length);
+    for (let k = 0; k < count; k++) {
+      const rem = bufferRemovals[k];
+      const add = bufferAdditions[k];
+      
+      rows.push({
+        left: rem ? { ...rem, lineNumber: originalLineNum++ } : undefined,
+        right: add ? { ...add, lineNumber: modifiedLineNum++ } : undefined
+      });
+    }
+    bufferRemovals = [];
+    bufferAdditions = [];
+  };
+
+  diffs.forEach(item => {
+    if (item.type === 'same') {
+      flushBuffers();
+      rows.push({
+        left: { ...item, lineNumber: originalLineNum++ },
+        right: { ...item, lineNumber: modifiedLineNum++ }
+      });
+    } else if (item.type === 'removed') {
+      bufferRemovals.push(item);
+    } else if (item.type === 'added') {
+      bufferAdditions.push(item);
+    }
+  });
+
+  flushBuffers(); // Flush any remaining at the end
+  return rows;
+};
+
 export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [original, setOriginal] = useState('');
   const [modified, setModified] = useState('');
   const [mode, setMode] = useState<'edit' | 'view'>('edit');
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
-  const diffResult = useMemo(() => {
-    if (mode === 'view') {
-      return computeLineDiff(original, modified);
-    }
-    return [];
+  // Compute diffs and stats
+  const { rows, stats } = useMemo(() => {
+    if (mode !== 'view') return { rows: [], stats: { added: 0, removed: 0, total: 0 } };
+    
+    const linearDiff = computeLineDiff(original, modified);
+    const calculatedRows = processDiffToRows(linearDiff);
+    
+    const added = linearDiff.filter(l => l.type === 'added').length;
+    const removed = linearDiff.filter(l => l.type === 'removed').length;
+    const total = linearDiff.length;
+
+    return { rows: calculatedRows, stats: { added, removed, total } };
   }, [original, modified, mode]);
 
   const handleSwap = () => {
@@ -91,12 +151,14 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
     setMode('edit');
   };
 
-  const stats = useMemo(() => {
-    if (mode !== 'view') return null;
-    const added = diffResult.filter(l => l.type === 'added').length;
-    const removed = diffResult.filter(l => l.type === 'removed').length;
-    return { added, removed, total: diffResult.length };
-  }, [diffResult, mode]);
+  const handleCopyResult = () => {
+    // For copy, we might want to copy a patch format or just the modified text. 
+    // Assuming user wants the modified text usually, or maybe a unified diff.
+    // Given the UI shows "Copy" typically for the result, let's copy the Modified text.
+    navigator.clipboard.writeText(modified);
+    setCopyFeedback(true);
+    setTimeout(() => setCopyFeedback(false), 2000);
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
@@ -137,13 +199,19 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
                </button>
              </>
            ) : (
-             <button 
-              onClick={() => setMode('edit')} 
-              className="flex items-center space-x-2 px-3 py-1.5 bg-element-bg border border-border-base text-text-primary rounded-md text-xs font-medium hover:bg-hover-overlay shadow-sm"
-             >
-               <Edit3 size={14} />
-               <span>Edit</span>
-             </button>
+             <>
+               <button onClick={handleClear} className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-hover-overlay rounded transition-colors" title="Clear All">
+                 <Trash2 size={16} />
+               </button>
+               <div className="w-px h-4 bg-border-base mx-2" />
+               <button 
+                onClick={() => setMode('edit')} 
+                className="flex items-center space-x-2 px-3 py-1.5 bg-element-bg border border-border-base text-text-primary rounded-md text-xs font-medium hover:bg-hover-overlay shadow-sm"
+               >
+                 <Edit3 size={14} />
+                 <span>Edit</span>
+               </button>
+             </>
            )}
         </div>
       </div>
@@ -183,51 +251,75 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
           </div>
         ) : (
           <div className="flex-1 flex flex-col min-w-0 bg-app-bg">
-            <div className="flex-1 overflow-auto p-4">
-              <div className="bg-panel-bg border border-border-base rounded-lg overflow-hidden font-mono text-sm">
-                 {diffResult.length === 0 && (
-                   <div className="p-8 text-center text-text-secondary">No differences found or empty inputs.</div>
-                 )}
-                 {diffResult.map((line, idx) => (
-                   <div 
-                    key={idx} 
-                    className={`flex ${
-                      line.type === 'added' ? 'bg-green-500/10' : 
-                      line.type === 'removed' ? 'bg-red-500/10' : ''
-                    }`}
-                   >
-                     {/* Gutter / Line Marker */}
-                     <div className={`w-8 shrink-0 select-none text-right pr-2 border-r border-border-base/50 text-xs py-0.5 opacity-50 ${
-                       line.type === 'added' ? 'text-green-500' : 
-                       line.type === 'removed' ? 'text-red-500' : 'text-text-secondary'
-                     }`}>
-                       {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ''}
-                     </div>
-                     
-                     {/* Content */}
-                     <div className={`flex-1 px-3 py-0.5 whitespace-pre-wrap break-all ${
-                        line.type === 'added' ? 'text-green-400' : 
-                        line.type === 'removed' ? 'text-red-400 line-through decoration-red-400/50' : 'text-text-secondary'
-                     }`}>
-                       {line.content || ' '} 
-                       {/* Ensure empty lines have height */}
-                     </div>
-                   </div>
-                 ))}
-              </div>
-            </div>
             
-            {/* Diff Stats Bar */}
-            <div className="h-8 bg-sidebar-bg border-t border-border-base flex items-center px-4 space-x-4 text-xs shrink-0">
-               <div className="flex items-center space-x-1 text-green-500">
-                 <Check size={12} />
-                 <span>{stats?.added} Added</span>
+            {/* Stats Header */}
+            <div className="bg-app-bg border-b border-border-base py-3 px-6 flex items-center justify-between shrink-0">
+               <div className="flex items-center space-x-6">
+                 <div className="flex items-center space-x-2 text-red-400">
+                    <MinusCircle size={16} />
+                    <span className="font-semibold text-sm">{stats.removed} removals</span>
+                 </div>
+                 <div className="flex items-center space-x-2 text-green-500">
+                    <PlusCircle size={16} />
+                    <span className="font-semibold text-sm">{stats.added} additions</span>
+                 </div>
                </div>
-               <div className="flex items-center space-x-1 text-red-500">
-                 <X size={12} />
-                 <span>{stats?.removed} Removed</span>
+
+               <div className="flex items-center space-x-4">
+                  <span className="text-xs text-text-secondary">{rows.length} rows</span>
+                  <button 
+                    onClick={handleCopyResult}
+                    className="flex items-center space-x-1 text-xs font-medium text-text-primary hover:text-accent transition-colors"
+                  >
+                    {copyFeedback ? <CheckCircle2 size={14} className="text-green-500" /> : <Copy size={14} />}
+                    <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
+                  </button>
                </div>
-               <span className="text-text-secondary">Total Lines: {stats?.total}</span>
+            </div>
+
+            {/* Diff View */}
+            <div className="flex-1 overflow-auto bg-app-bg">
+              {rows.length === 0 ? (
+                <div className="p-8 text-center text-text-secondary">No differences found or empty inputs.</div>
+              ) : (
+                <div className="flex flex-col min-w-fit font-mono text-xs">
+                   {rows.map((row, idx) => (
+                     <div key={idx} className="flex w-full group hover:bg-hover-overlay/50">
+                        
+                        {/* LEFT PANE */}
+                        <div className={`flex-1 flex min-w-0 border-r border-border-base/40 ${
+                          row.left?.type === 'removed' ? 'bg-red-500/10' : ''
+                        }`}>
+                           <div className="w-10 shrink-0 text-right pr-3 py-1 select-none text-text-secondary/40">
+                             {row.left?.lineNumber}
+                           </div>
+                           <div className={`flex-1 pl-2 pr-2 py-1 whitespace-pre-wrap break-all ${
+                             row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
+                           }`}>
+                             {row.left?.content}
+                           </div>
+                        </div>
+
+                        {/* RIGHT PANE */}
+                        <div className={`flex-1 flex min-w-0 ${
+                          row.right?.type === 'added' ? 'bg-green-500/10' : ''
+                        }`}>
+                           <div className="w-10 shrink-0 text-right pr-3 py-1 select-none text-text-secondary/40">
+                             {row.right?.lineNumber}
+                           </div>
+                           <div className={`flex-1 pl-2 pr-2 py-1 whitespace-pre-wrap break-all ${
+                             row.right?.type === 'added' ? 'text-text-primary' : 'text-text-secondary'
+                           }`}>
+                             {row.right?.content}
+                           </div>
+                        </div>
+
+                     </div>
+                   ))}
+                   {/* Extra space at bottom */}
+                   <div className="h-8"></div>
+                </div>
+              )}
             </div>
           </div>
         )}
