@@ -33,8 +33,8 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool }) => {
   return (
     <div className="w-64 bg-[#1e1e2e] h-full flex flex-col border-r border-gray-800 flex-shrink-0">
-      {/* App Header with Drag Region */}
-      <div className="h-12 flex items-center px-4 border-b border-gray-800 space-x-2 electron-drag select-none">
+      {/* App Header with Drag Region - Increased height/padding for macOS traffic lights */}
+      <div className="h-20 flex items-center px-4 pt-8 border-b border-gray-800 space-x-2 electron-drag select-none">
         <div className="w-6 h-6 bg-blue-500 rounded-md flex items-center justify-center">
           <Code2 size={16} className="text-white" />
         </div>
@@ -254,8 +254,8 @@ const JsonFormatter = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#13141f] text-gray-300">
-      {/* Tool Header - Drag Region enabled */}
-      <div className="h-12 border-b border-gray-800 flex items-center justify-between px-6 bg-[#13141f] electron-drag select-none">
+      {/* Tool Header - Matching height with sidebar for consistency */}
+      <div className="h-20 border-b border-gray-800 flex items-center justify-between px-6 pt-8 bg-[#13141f] electron-drag select-none">
         <div className="relative w-96 group electron-no-drag">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 group-hover:text-gray-400 transition-colors" size={16} />
           <input 
@@ -266,16 +266,7 @@ const JsonFormatter = () => {
           <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 font-mono">⌘K</span>
         </div>
         
-        <div className="flex items-center space-x-4 electron-no-drag">
-          <button onClick={handleClear} className="flex flex-col items-center text-gray-500 hover:text-red-400 transition-colors group">
-            <Trash2 size={16} />
-            <span className="text-[10px] mt-0.5 font-medium group-hover:text-red-400">Clear</span>
-          </button>
-          <button className="flex flex-col items-center text-gray-500 hover:text-gray-300 transition-colors group">
-            <Settings size={16} />
-            <span className="text-[10px] mt-0.5 font-medium">Settings</span>
-          </button>
-        </div>
+        {/* Right side controls removed as requested */}
       </div>
 
       {/* Workspace */}
