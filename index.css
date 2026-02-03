@@ -93,10 +93,50 @@
     
     --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   }
+
+  [data-theme='glass'] {
+    /* Glassmorphism / Frost Theme */
+    /* Note: Background gradient is applied in body rule below */
+    --color-app-bg: transparent; 
+    
+    /* Highly transparent layers */
+    --color-sidebar-bg: rgba(15, 23, 42, 0.3); 
+    --color-panel-bg: rgba(255, 255, 255, 0.03);
+    --color-element-bg: rgba(255, 255, 255, 0.08);
+    --color-input-bg: rgba(0, 0, 0, 0.2);
+    
+    /* Subtle white borders for glass edge effect */
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-hover: rgba(255, 255, 255, 0.15);
+    
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #94a3b8;
+    
+    --color-accent: #38bdf8;         /* Sky Blue 400 */
+    --color-active-item: rgba(255, 255, 255, 0.1);
+    --color-hover-overlay: rgba(255, 255, 255, 0.05);
+    
+    /* No heavy shadow, let the blur do the work, maybe a subtle glow */
+    --shadow-card: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
 }
 
 body {
   @apply bg-app-bg text-text-primary transition-colors duration-200;
+}
+
+/* Specific body background for Glass theme to show depth behind blur */
+[data-theme='glass'] body {
+  background: radial-gradient(circle at top left, #1e293b, #020617);
+  background-attachment: fixed;
+}
+
+/* Apply Backdrop Blur for Glass Theme */
+[data-theme='glass'] .bg-sidebar-bg,
+[data-theme='glass'] .bg-panel-bg,
+[data-theme='glass'] .bg-element-bg {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* Custom Scrollbar */

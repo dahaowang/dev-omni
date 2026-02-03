@@ -77,6 +77,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   >
                     <option value="dark">Dark (OLED)</option>
                     <option value="graphite">Graphite (Modern)</option>
+                    <option value="glass">Glass (Frost)</option>
                     <option value="cream">Cream (Warm)</option>
                     <option value="light">Light</option>
                   </select>
