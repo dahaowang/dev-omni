@@ -4,36 +4,44 @@
 
 @layer base {
   :root {
-    /* Default Dark Theme (Refined Modern Zinc/Slate) */
-    --color-app-bg: #18181b; /* Zinc 900 */
-    --color-sidebar-bg: #09090b; /* Zinc 950 */
-    --color-panel-bg: #27272a; /* Zinc 800 */
-    --color-element-bg: #3f3f46; /* Zinc 700 */
-    --color-border: #27272a; /* Zinc 800 */
-    --color-border-hover: #52525b; /* Zinc 600 */
-    --color-text-primary: #f4f4f5; /* Zinc 100 */
-    --color-text-secondary: #a1a1aa; /* Zinc 400 */
-    --color-accent: #2dd4bf; /* Teal 400 - Vibrant for dark mode */
-    --color-active-item: #27272a; /* Zinc 800 */
-    --color-hover-overlay: rgba(255, 255, 255, 0.04);
-    --color-input-bg: #09090b;
-    --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    /* Optimized Dark Theme (Reference: Screenshot) */
+    --color-app-bg: #0c0c0c;       /* Main content background - Deep Matte Black */
+    --color-sidebar-bg: #050505;   /* Sidebar - Almost Pure Black */
+    --color-panel-bg: #171717;     /* Cards - Dark Neutral Grey */
+    --color-element-bg: #262626;   /* Secondary Elements/Buttons */
+    --color-input-bg: #0a0a0a;     /* Inset Inputs - Deep Black */
+    
+    --color-border: #262626;       /* Subtle Borders */
+    --color-border-hover: #404040; /* Lighter on hover */
+    
+    --color-text-primary: #ededed;   /* High brightness text */
+    --color-text-secondary: #888888; /* Muted text */
+    
+    --color-accent: #2dd4bf;         /* Teal 400 - Vibrant Accent */
+    --color-active-item: #1a1a1a;    /* Sidebar Active Background */
+    --color-hover-overlay: rgba(255, 255, 255, 0.05);
+    
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
   }
 
   [data-theme='light'] {
-    /* Refined Light Theme (Matching Screenshot) */
-    --color-app-bg: #f3f4f6; /* Gray 100 - Distinct from white panels */
-    --color-sidebar-bg: #ffffff; /* White Sidebar */
-    --color-panel-bg: #ffffff; /* White Cards */
-    --color-element-bg: #f1f5f9; /* Slate 100 */
-    --color-border: #e2e8f0; /* Slate 200 */
-    --color-border-hover: #cbd5e1; /* Slate 300 */
-    --color-text-primary: #0f172a; /* Slate 900 */
-    --color-text-secondary: #64748b; /* Slate 500 */
-    --color-accent: #0d9488; /* Teal 600 - Matches screenshot button */
-    --color-active-item: #eff6ff; /* Very subtle blue/gray tint */
-    --color-hover-overlay: rgba(0, 0, 0, 0.03);
+    /* Refined Light Theme */
+    --color-app-bg: #f3f4f6;
+    --color-sidebar-bg: #ffffff;
+    --color-panel-bg: #ffffff;
+    --color-element-bg: #f1f5f9;
     --color-input-bg: #ffffff;
+    
+    --color-border: #e2e8f0;
+    --color-border-hover: #cbd5e1;
+    
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #64748b;
+    
+    --color-accent: #0d9488;
+    --color-active-item: #eff6ff;
+    --color-hover-overlay: rgba(0, 0, 0, 0.03);
+    
     --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   }
 
@@ -43,14 +51,18 @@
     --color-sidebar-bg: #000000;
     --color-panel-bg: #111111;
     --color-element-bg: #222222;
+    --color-input-bg: #050505;
+    
     --color-border: #333333;
     --color-border-hover: #444444;
+    
     --color-text-primary: #ffffff;
     --color-text-secondary: #888888;
-    --color-accent: #c084fc; /* Purple */
+    
+    --color-accent: #c084fc;
     --color-active-item: #111111;
     --color-hover-overlay: rgba(255, 255, 255, 0.08);
-    --color-input-bg: #050505;
+    
     --shadow-card: none;
   }
 }
