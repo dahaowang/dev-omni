@@ -103,7 +103,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
     <div className="w-64 bg-sidebar-bg h-full flex flex-col border-r border-border-base flex-shrink-0 transition-colors duration-200">
       
       {/* Top Region: Drag + Search */}
-      <div className="pt-8 pb-2 px-3 electron-drag flex flex-col gap-2 shrink-0">
+      {/* Changed pt-8 to pt-14 to align search bar below the right-side header line */}
+      <div className="pt-14 pb-2 px-3 electron-drag flex flex-col gap-2 shrink-0">
          {/* Search Box - Compacted */}
          <div className="relative group electron-no-drag">
           <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-text-secondary group-focus-within:text-accent transition-colors" size={13} />

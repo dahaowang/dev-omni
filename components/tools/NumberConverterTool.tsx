@@ -161,7 +161,7 @@ export const NumberConverterTool: React.FC<NumberConverterToolProps> = ({ isSide
             <textarea 
                value={input}
                onChange={(e) => setInput(e.target.value)}
-               className="w-full h-full bg-transparent resize-none p-4 font-mono text-xl leading-relaxed focus:outline-none placeholder-text-secondary"
+               className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none placeholder-text-secondary"
                placeholder={`Enter Base ${fromBase} number...`}
                spellCheck={false}
             />
@@ -191,7 +191,7 @@ export const NumberConverterTool: React.FC<NumberConverterToolProps> = ({ isSide
              <textarea 
                readOnly
                value={output}
-               className={`w-full h-full bg-transparent resize-none p-4 font-mono text-xl leading-relaxed focus:outline-none ${
+               className={`w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none ${
                  error ? 'text-red-400' : 'text-accent'
                } placeholder-text-secondary`}
                placeholder="Result will appear here..."
