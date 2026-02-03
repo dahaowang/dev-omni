@@ -10,7 +10,8 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#13141f',
+    backgroundColor: '#13141f', // Matches your default dark theme background
+    show: false, // Don't show the window until content is ready
     // We use a custom title bar in the UI, so we hide the system one
     titleBarStyle: 'hidden', 
     titleBarOverlay: {
@@ -37,6 +38,11 @@ function createWindow() {
     // In production, load the built html file
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
+
+  // Gracefully show window when ready to prevent "white flash"
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
