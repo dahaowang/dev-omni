@@ -13,13 +13,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-[500px] bg-sidebar-bg border border-border-base rounded-lg shadow-2xl flex flex-col max-h-[80vh] text-text-primary transition-colors duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="w-[500px] bg-sidebar-bg border border-border-base rounded-lg shadow-2xl flex flex-col max-h-[80vh] text-text-primary transition-colors duration-300 animate-scale-in">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border-base">
           <h2 className="text-lg font-semibold">Settings</h2>
-          <button onClick={onClose} className="text-text-secondary hover:text-text-primary">
+          <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -85,7 +85,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         <div className="p-4 border-t border-border-base flex justify-end">
           <button 
             onClick={onClose}
-            className="px-4 py-2 bg-accent text-white rounded-md text-sm font-medium hover:opacity-90 transition-opacity shadow-sm"
+            className="px-4 py-2 bg-accent text-white rounded-md text-sm font-medium hover:opacity-90 transition-all shadow-sm active:scale-95"
           >
             Done
           </button>
@@ -107,14 +107,14 @@ const ThemeOption: React.FC<{
   return (
     <button
       onClick={() => onSelect(id)}
-      className={`relative flex flex-col items-center p-3 rounded-md border-2 transition-all duration-200 ${
+      className={`relative flex flex-col items-center p-3 rounded-md border-2 transition-all duration-200 active:scale-95 ${
         isSelected 
           ? 'border-accent bg-active-item' 
           : 'border-transparent hover:bg-hover-overlay'
       }`}
     >
       <div 
-        className="w-full h-10 rounded mb-2 border border-border-base shadow-sm"
+        className="w-full h-10 rounded mb-2 border border-border-base shadow-sm transition-transform duration-300 hover:scale-105"
         style={{ backgroundColor: previewColor }}
       ></div>
       <div className="flex items-center space-x-2 text-text-primary">
@@ -122,7 +122,7 @@ const ThemeOption: React.FC<{
         <span className="text-sm font-medium">{label}</span>
       </div>
       {isSelected && (
-        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent ring-2 ring-panel-bg"></div>
+        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent ring-2 ring-panel-bg animate-scale-in"></div>
       )}
     </button>
   );

@@ -74,7 +74,11 @@ const App: React.FC = () => {
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onSettingsClick={() => setIsSettingsOpen(true)}
       />
-      {renderTool()}
+      
+      {/* Tool Container with Animation Key */}
+      <div key={activeTool} className="flex-1 flex flex-col h-full animate-slide-up-fade overflow-hidden">
+        {renderTool()}
+      </div>
       
       <SettingsModal 
         isOpen={isSettingsOpen} 
