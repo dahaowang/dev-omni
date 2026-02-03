@@ -5,52 +5,58 @@
 @layer base {
   :root {
     /* Default Dark Theme (Refined Modern Zinc/Slate) */
-    /* Inspired by Linear/Untitled UI Dark */
-    --color-app-bg: #18181b; /* Zinc 900 - Main content area */
-    --color-sidebar-bg: #09090b; /* Zinc 950 - Darker sidebar for contrast */
-    --color-panel-bg: #27272a; /* Zinc 800 - Cards/Inputs */
-    --color-element-bg: #3f3f46; /* Zinc 700 - Buttons/Interactive */
-    --color-border: #27272a; /* Zinc 800 - Subtle borders */
+    --color-app-bg: #18181b; /* Zinc 900 */
+    --color-sidebar-bg: #09090b; /* Zinc 950 */
+    --color-panel-bg: #27272a; /* Zinc 800 */
+    --color-element-bg: #3f3f46; /* Zinc 700 */
+    --color-border: #27272a; /* Zinc 800 */
     --color-border-hover: #52525b; /* Zinc 600 */
     --color-text-primary: #f4f4f5; /* Zinc 100 */
     --color-text-secondary: #a1a1aa; /* Zinc 400 */
-    --color-accent: #6366f1; /* Indigo 500 - Professional Accent */
+    --color-accent: #2dd4bf; /* Teal 400 - Vibrant for dark mode */
     --color-active-item: #27272a; /* Zinc 800 */
     --color-hover-overlay: rgba(255, 255, 255, 0.04);
-    --color-input-bg: #09090b; /* Zinc 950 */
+    --color-input-bg: #09090b;
+    --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   }
 
   [data-theme='light'] {
-    /* Refined Light Theme (Untitled UI Light) */
-    --color-app-bg: #ffffff;
-    --color-sidebar-bg: #f9fafb; /* Gray 50 - Very subtle contrast */
-    --color-panel-bg: #ffffff;
-    --color-element-bg: #f3f4f6; /* Gray 100 */
-    --color-border: #e5e7eb; /* Gray 200 - Crisp borders */
-    --color-border-hover: #d1d5db; /* Gray 300 */
-    --color-text-primary: #111827; /* Gray 900 */
-    --color-text-secondary: #6b7280; /* Gray 500 */
-    --color-accent: #4f46e5; /* Indigo 600 - Slightly darker for light mode contrast */
-    --color-active-item: #f3f4f6; /* Gray 100 */
-    --color-hover-overlay: rgba(0, 0, 0, 0.04);
+    /* Refined Light Theme (Matching Screenshot) */
+    --color-app-bg: #f3f4f6; /* Gray 100 - Distinct from white panels */
+    --color-sidebar-bg: #ffffff; /* White Sidebar */
+    --color-panel-bg: #ffffff; /* White Cards */
+    --color-element-bg: #f1f5f9; /* Slate 100 */
+    --color-border: #e2e8f0; /* Slate 200 */
+    --color-border-hover: #cbd5e1; /* Slate 300 */
+    --color-text-primary: #0f172a; /* Slate 900 */
+    --color-text-secondary: #64748b; /* Slate 500 */
+    --color-accent: #0d9488; /* Teal 600 - Matches screenshot button */
+    --color-active-item: #eff6ff; /* Very subtle blue/gray tint */
+    --color-hover-overlay: rgba(0, 0, 0, 0.03);
     --color-input-bg: #ffffff;
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   }
 
   [data-theme='midnight'] {
-    /* Raycast Inspired (OLED Black + Purple Accent) */
-    --color-app-bg: #050505; /* Near Pitch Black */
-    --color-sidebar-bg: #000000; /* Pure Black */
-    --color-panel-bg: #161616; /* Deep Gray Card */
-    --color-element-bg: #262626; /* Interactables */
-    --color-border: #2A2A2A; /* Very Low Contrast Border */
-    --color-border-hover: #404040;
-    --color-text-primary: #FFFFFF; /* Pure White */
-    --color-text-secondary: #888888; /* Dimmed Gray */
-    --color-accent: #C084FC; /* Vivid Purple */
-    --color-active-item: #1A1A1A; /* Subtle selection background */
+    /* OLED Black */
+    --color-app-bg: #000000;
+    --color-sidebar-bg: #000000;
+    --color-panel-bg: #111111;
+    --color-element-bg: #222222;
+    --color-border: #333333;
+    --color-border-hover: #444444;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #888888;
+    --color-accent: #c084fc; /* Purple */
+    --color-active-item: #111111;
     --color-hover-overlay: rgba(255, 255, 255, 0.08);
-    --color-input-bg: #0A0A0A;
+    --color-input-bg: #050505;
+    --shadow-card: none;
   }
+}
+
+body {
+  @apply bg-app-bg text-text-primary transition-colors duration-200;
 }
 
 /* Custom Scrollbar */
@@ -64,10 +70,11 @@
 ::-webkit-scrollbar-thumb {
   background: var(--color-border); 
   border-radius: 5px;
-  border: 2px solid var(--color-app-bg); /* Padding effect */
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-secondary); 
+  background-color: var(--color-text-secondary); 
 }
 
 /* Electron Drag Region */

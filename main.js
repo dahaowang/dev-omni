@@ -10,14 +10,13 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#18181b', // Matches new Zinc-900 Dark theme background
+    backgroundColor: '#ffffff', // Default to white for the new light theme preference
     show: false, // Don't show the window until content is ready
-    // We use a custom title bar in the UI, so we hide the system one
     titleBarStyle: 'hidden', 
     titleBarOverlay: {
-      color: '#09090b', // Matches new Sidebar Zinc-950
-      symbolColor: '#a1a1aa', // Zinc-400
-      height: 48 // Match the height of our header
+      color: '#00000000', // Transparent overlay, letting the Sidebar background show through
+      symbolColor: '#64748b', // Slate-500 for traffic lights
+      height: 40 // Height of the drag region
     },
     webPreferences: {
       nodeIntegration: true,
