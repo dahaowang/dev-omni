@@ -1,0 +1,5 @@
+{
+  "name": "DevOmni Developer Tools",
+  "description": "A developer utility app featuring JSON formatting, converters, and generators with a modern dark UI.",
+  "requestFramePermissions": []
+}
