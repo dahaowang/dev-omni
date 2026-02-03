@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Moon, Sun, Monitor, Layers } from 'lucide-react';
+import { X, Moon, Sun, Monitor } from 'lucide-react';
 import { useTheme, ThemeName } from '../../context/ThemeContext';
 
 interface SettingsModalProps {
@@ -34,7 +34,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               
               <div className="bg-panel-bg rounded-lg border border-border-base p-4 transition-colors duration-300">
                 <label className="text-sm font-medium text-text-primary block mb-3">Theme</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <ThemeOption 
                     id="dark" 
                     label="Dark" 
@@ -58,14 +58,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     onSelect={setTheme} 
                     icon={<Monitor size={18} />} 
                     previewColor="#000000"
-                  />
-                  <ThemeOption 
-                    id="untitled" 
-                    label="Untitled" 
-                    currentTheme={theme} 
-                    onSelect={setTheme} 
-                    icon={<Layers size={18} />} 
-                    previewColor="#151517"
                   />
                 </div>
               </div>

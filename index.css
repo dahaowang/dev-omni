@@ -51,22 +51,6 @@
     --color-hover-overlay: rgba(255, 255, 255, 0.08);
     --color-input-bg: #0A0A0A;
   }
-
-  [data-theme='untitled'] {
-    /* Untitled UI Inspired (Monochrome Dark) */
-    --color-app-bg: #0C0C0E; /* Deep Carbon */
-    --color-sidebar-bg: #151517; /* Slightly lighter Sidebar */
-    --color-panel-bg: #1C1C1F; /* Card Background */
-    --color-element-bg: #27272A; /* Button/Input Background */
-    --color-border: #27272A; /* Subtle Border */
-    --color-border-hover: #3F3F46;
-    --color-text-primary: #FAFAFA; /* High Brightness White */
-    --color-text-secondary: #A1A1AA; /* Cool Gray */
-    --color-accent: #FFFFFF; /* Monochrome Accent (White) */
-    --color-active-item: #27272A; /* Selected State */
-    --color-hover-overlay: rgba(255, 255, 255, 0.03);
-    --color-input-bg: #111113;
-  }
 }
 
 /* Custom Scrollbar */
