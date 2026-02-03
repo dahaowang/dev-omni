@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ToolType } from './types';
 import { Sidebar } from './components/Sidebar';
 import { JsonFormatter } from './components/tools/JsonFormatter';
+import { DedupeTool } from './components/tools/DedupeTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -33,6 +34,8 @@ const App: React.FC = () => {
     switch (activeTool) {
       case 'json':
         return <JsonFormatter {...commonProps} />;
+      case 'dedupe':
+        return <DedupeTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
