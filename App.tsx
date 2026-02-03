@@ -7,6 +7,7 @@ import { DiffTool } from './components/tools/DiffTool';
 import { HashTool } from './components/tools/HashTool';
 import { UrlEncoderTool } from './components/tools/UrlEncoderTool';
 import { Base64Tool } from './components/tools/Base64Tool';
+import { SqlFormatterTool } from './components/tools/SqlFormatterTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -39,6 +40,8 @@ const App: React.FC = () => {
     switch (activeTool) {
       case 'json':
         return <JsonFormatter {...commonProps} />;
+      case 'sql':
+        return <SqlFormatterTool {...commonProps} />;
       case 'dedupe':
         return <DedupeTool {...commonProps} />;
       case 'diff':
