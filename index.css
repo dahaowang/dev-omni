@@ -46,30 +46,31 @@
   }
 
   [data-theme='cream'] {
-    /* Cream / Latte Theme - User Customized */
+    /* Cream / Latte Theme - Warm White Panels */
     --color-app-bg: #F2EFE5;       /* Warm Cream Background */
     --color-sidebar-bg: #F2EFE5;   /* Seamless sidebar */
     
-    /* User Requested: #E6E3D8 */
-    --color-panel-bg: #E6E3D8;     
+    /* Reverted to Warm White as requested */
+    --color-panel-bg: #FDFCF8;     
     
-    /* Elements slightly darker than panel to distinguish buttons */
-    --color-element-bg: #DAD7CC;   
-    --color-input-bg: #E6E3D8;     
+    /* Elements slightly darker than panel to pop */
+    --color-element-bg: #EAE7DE;   
+    --color-input-bg: #FDFCF8;     
     
-    /* Borders slightly darker than the new panel color */
-    --color-border: #D1CEC2;       
-    --color-border-hover: #BEBBAF;
+    /* Low contrast borders */
+    --color-border: #E4E1D5;       
+    --color-border-hover: #D1CEC2;
     
-    /* User Requested: #020100 */
-    --color-text-primary: #020100;
-    --color-text-secondary: #66645E; /* Darker secondary to match high contrast primary */
+    /* Soft Black Text for better aesthetics on white */
+    --color-text-primary: #333333;   
+    --color-text-secondary: #79766D; /* Warm Grey */
     
     --color-accent: #57A364;         /* Natural Green */
-    --color-active-item: #E6E3D8;    /* Matches panel */
-    --color-hover-overlay: rgba(0, 0, 0, 0.06);
+    --color-active-item: #EAE7DE;    /* Matches element */
+    --color-hover-overlay: rgba(0, 0, 0, 0.04);
     
-    --shadow-card: 0 4px 12px -2px rgba(105, 95, 80, 0.15);
+    /* Warm, diffused brown shadow */
+    --shadow-card: 0 8px 20px -6px rgba(105, 95, 80, 0.1), 0 2px 8px -2px rgba(105, 95, 80, 0.05);
   }
 
   [data-theme='light'] {
