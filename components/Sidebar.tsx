@@ -8,7 +8,6 @@ import {
   Scissors, 
   Files, 
   Plus, 
-  User, 
   Settings, 
   Search,
   PanelLeft
@@ -175,9 +174,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
       {/* Sidebar Footer */}
       <div className="p-4 border-t border-border-base space-y-4">
         <div className="flex flex-col space-y-4">
-           <button className="text-text-secondary hover:text-text-primary transition-colors">
-            <User size={20} />
-           </button>
            <button 
             onClick={onSettingsClick}
             className="text-text-secondary hover:text-text-primary transition-colors"
