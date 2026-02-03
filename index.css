@@ -46,24 +46,30 @@
   }
 
   [data-theme='cream'] {
-    /* Cream / Latte Theme (Reference: Image) */
+    /* Cream / Latte Theme - Softened */
     --color-app-bg: #F2EFE5;       /* Warm Cream Background */
     --color-sidebar-bg: #F2EFE5;   /* Seamless sidebar */
-    --color-panel-bg: #FFFFFF;     /* White cards for floating effect */
-    --color-element-bg: #E6E3D8;   /* User specified element color */
-    --color-input-bg: #F8F6F0;     /* Slightly lighter than element for inputs */
     
-    --color-border: #E6E3D8;       /* Subtle matching border */
-    --color-border-hover: #D1CFC0;
+    /* Changed from #FFFFFF to a warm off-white for softer transition */
+    --color-panel-bg: #FDFCF8;     
     
-    --color-text-primary: #2C2C2C;   /* Soft Black */
-    --color-text-secondary: #6B6B6B; /* Warm Grey */
+    /* Elements slightly darker than panel to pop, but blending with BG */
+    --color-element-bg: #EAE7DE;   
+    --color-input-bg: #FDFCF8;     
     
-    --color-accent: #57A364;         /* Natural Green (from reference image) */
-    --color-active-item: #E6E3D8;    /* Matches element bg */
+    /* Low contrast borders matching the paper tone */
+    --color-border: #E4E1D5;       
+    --color-border-hover: #D1CEC2;
+    
+    --color-text-primary: #333333;   /* Soft Black */
+    --color-text-secondary: #79766D; /* Warm Grey */
+    
+    --color-accent: #57A364;         /* Natural Green */
+    --color-active-item: #E4E1D5;    /* Matches border/element */
     --color-hover-overlay: rgba(0, 0, 0, 0.04);
     
-    --shadow-card: 0 4px 20px -4px rgba(0, 0, 0, 0.06); /* Soft, diffused light shadow */
+    /* Warm, diffused brown shadow instead of harsh black */
+    --shadow-card: 0 8px 20px -6px rgba(105, 95, 80, 0.1), 0 2px 8px -2px rgba(105, 95, 80, 0.05);
   }
 
   [data-theme='light'] {
