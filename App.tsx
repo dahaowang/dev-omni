@@ -11,6 +11,7 @@ import { SqlFormatterTool } from './components/tools/SqlFormatterTool';
 import { NumberConverterTool } from './components/tools/NumberConverterTool';
 import { JsonToYamlTool } from './components/tools/JsonToYamlTool';
 import { TimestampTool } from './components/tools/TimestampTool';
+import { ColorPickerTool } from './components/tools/ColorPickerTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -24,6 +25,7 @@ const TOOL_LABELS: Record<string, string> = {
   number: 'Number Base',
   yaml: 'JSON <> YAML',
   timestamp: 'Timestamp Generator',
+  color: 'Color Picker',
   hash: 'Hash/MD5 Generator',
   diff: 'Text Diff',
   dedupe: 'Dedupe Lines'
@@ -64,6 +66,8 @@ const App: React.FC = () => {
         return <JsonToYamlTool {...commonProps} />;
       case 'timestamp':
         return <TimestampTool {...commonProps} />;
+      case 'color':
+        return <ColorPickerTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
