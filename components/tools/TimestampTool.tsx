@@ -29,8 +29,9 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
   const [parseError, setParseError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   
-  // Timer ref for live clock
+  // Refs
   const timerRef = useRef<number | null>(null);
+  const hiddenDateInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize/Clear Live Timer
   useEffect(() => {
@@ -56,7 +57,6 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
   useEffect(() => {
     if (mode === 'manual') {
       if (!input.trim()) {
-        // Fallback to now if empty, or keep last valid? Let's keep last valid or now.
         return;
       }
       
@@ -103,6 +103,39 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
   const handleManualInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMode('manual');
     setInput(e.target.value);
+  };
+
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val) {
+      // datetime-local returns YYYY-MM-DDThh:mm:ss
+      // We set input to this value (replacing T with space for readability if desired, or keeping ISO)
+      setMode('manual');
+      setInput(val.replace('T', ' '));
+      
+      // Update internal date immediately to reflect selection
+      const newDate = new Date(val);
+      if (!isNaN(newDate.getTime())) {
+        setDate(newDate);
+        setParseError(null);
+      }
+    }
+  };
+
+  const openDatePicker = () => {
+    // Programmatically open the date picker
+    try {
+      hiddenDateInputRef.current?.showPicker();
+    } catch (e) {
+      // Fallback for older browsers (unlikely in Electron)
+      hiddenDateInputRef.current?.focus();
+    }
+  };
+
+  // Helper to format Date for datetime-local input (YYYY-MM-DDThh:mm:ss)
+  const toLocalISOString = (d: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   };
 
   const copyToClipboard = (text: string, id: string) => {
@@ -152,10 +185,14 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
             <div className="flex flex-col md:flex-row md:items-center gap-4">
               
               {/* Input Group */}
-              <div className="flex-1 relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
+              <div className="flex-1 relative group">
+                <button 
+                  onClick={openDatePicker}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-accent hover:bg-element-bg p-1.5 rounded-md transition-all z-10"
+                  title="Pick Date & Time"
+                >
                   <Calendar size={16} />
-                </div>
+                </button>
                 <input 
                   type="text" 
                   value={mode === 'live' ? '' : input}
@@ -166,6 +203,17 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
                       ? 'border-red-900/50 text-red-400 placeholder-red-400/50' 
                       : 'border-border-base focus:border-accent text-text-primary placeholder-text-secondary'
                   }`}
+                />
+                
+                {/* Hidden Native Date Picker */}
+                <input 
+                  type="datetime-local"
+                  ref={hiddenDateInputRef}
+                  value={toLocalISOString(date)}
+                  onChange={handleDatePickerChange}
+                  step="1"
+                  className="absolute bottom-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
+                  tabIndex={-1}
                 />
               </div>
 
@@ -192,7 +240,7 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
                ) : (
                  <span className="text-xs text-text-secondary">
                    {mode === 'live' 
-                     ? 'Updates every second. Type above to convert a specific date.' 
+                     ? 'Updates every second. Type above or click calendar to convert a specific date.' 
                      : 'Showing conversions for input date.'}
                  </span>
                )}
@@ -209,7 +257,6 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
                  <div className="min-w-0 flex-1 mr-4">
                     <div className="text-xs text-text-secondary font-medium uppercase tracking-wide mb-1 flex items-center gap-2">
                       {item.label}
-                      {/* Optional: Add badge for type if needed */}
                     </div>
                     <div className="font-mono text-lg text-text-primary truncate select-all">
                       {item.value}
