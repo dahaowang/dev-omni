@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Star, 
   Braces, 
@@ -19,105 +19,157 @@ import {
   AlertCircle,
   Copy,
   LayoutTemplate,
-  Code2
+  Code2,
+  PanelLeft
 } from 'lucide-react';
-import { ToolType } from './types';
+import { ToolType, NavItem as NavItemType } from './types';
+
+// --- Configuration & Helpers ---
+
+const TOOL_LABELS: Record<string, string> = {
+  json: 'JSON Formatter',
+  sql: 'SQL Formatter',
+  url: 'URL Encoder',
+  hash: 'Hash/MD5 Generator',
+  diff: 'Text Diff',
+  dedupe: 'Dedupe Lines'
+};
 
 // --- Sidebar Component ---
 
 interface SidebarProps {
   activeTool: ToolType;
   setActiveTool: (tool: ToolType) => void;
+  isOpen: boolean;
+  toggleSidebar: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isOpen, toggleSidebar }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  if (!isOpen) return null;
+
+  const matchesSearch = (label: string) => label.toLowerCase().includes(searchTerm.toLowerCase());
+
   return (
-    <div className="w-64 bg-[#1e1e2e] h-full flex flex-col border-r border-gray-800 flex-shrink-0">
-      {/* App Header with Drag Region - Increased height/padding for macOS traffic lights */}
-      <div className="h-20 flex items-center px-4 pt-8 border-b border-gray-800 space-x-2 electron-drag select-none">
-        <div className="w-6 h-6 bg-blue-500 rounded-md flex items-center justify-center">
-          <Code2 size={16} className="text-white" />
+    <div className="w-64 bg-[#1e1e2e] h-full flex flex-col border-r border-gray-800 flex-shrink-0 transition-all duration-300 ease-in-out">
+      {/* Sidebar Header: Traffic Lights Spacer + Toggle Button */}
+      <div className="h-12 flex items-center px-4 electron-drag select-none shrink-0">
+        {/* Spacer for macOS Traffic Lights (approx 70px) */}
+        <div className="w-[70px] h-full shrink-0"></div>
+        
+        {/* Toggle Sidebar Button */}
+        <button 
+          onClick={toggleSidebar} 
+          className="electron-no-drag p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
+          title="Close Sidebar"
+        >
+          <PanelLeft size={18} />
+        </button>
+      </div>
+
+      {/* Search Box (Moved here) */}
+      <div className="px-4 mb-2 mt-2">
+        <div className="relative group">
+          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-500 group-hover:text-gray-400 transition-colors" size={14} />
+          <input 
+            type="text" 
+            placeholder="Search tools..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-[#13141f] border border-gray-700 text-xs text-gray-200 rounded-md pl-8 pr-3 py-2 focus:outline-none focus:border-gray-600 focus:bg-[#1a1b23] transition-all placeholder-gray-600"
+          />
         </div>
-        <span className="font-semibold text-gray-200 tracking-wide">DevOmni</span>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-6">
+      <div className="flex-1 overflow-y-auto py-2 space-y-6">
         
         {/* All Section */}
-        <div className="px-2">
-          <div className="text-xs font-semibold text-gray-500 px-3 mb-2 uppercase tracking-wider">All</div>
-          <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors">
-            <Star size={18} />
-            <span className="text-sm">Favorites</span>
-          </button>
-        </div>
+        {matchesSearch('favorites') && (
+          <div className="px-2">
+            <div className="text-xs font-semibold text-gray-500 px-3 mb-2 uppercase tracking-wider">All</div>
+            <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors">
+              <Star size={18} />
+              <span className="text-sm">Favorites</span>
+            </button>
+          </div>
+        )}
 
         {/* Converters Section */}
         <div className="px-2">
-          <div className="flex items-center justify-between px-3 mb-2 cursor-pointer group">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider group-hover:text-gray-300">Converters</div>
-          </div>
+          {(matchesSearch('converters') || matchesSearch('json') || matchesSearch('sql') || matchesSearch('url')) && (
+            <div className="text-xs font-semibold text-gray-500 px-3 mb-2 uppercase tracking-wider mt-2">Converters</div>
+          )}
           <div className="space-y-1">
-            <NavItem 
-              active={activeTool === 'json'} 
-              onClick={() => setActiveTool('json')} 
-              icon={<Braces size={18} />} 
-              label="JSON Format" 
-            />
-            <NavItem 
-              active={activeTool === 'sql'} 
-              onClick={() => setActiveTool('sql')} 
-              icon={<Database size={18} />} 
-              label="SQL Format" 
-            />
-            <NavItem 
-              active={activeTool === 'url'} 
-              onClick={() => setActiveTool('url')} 
-              icon={<LinkIcon size={18} />} 
-              label="URL Encode" 
-            />
+            {matchesSearch('json format') && (
+              <NavItem 
+                active={activeTool === 'json'} 
+                onClick={() => setActiveTool('json')} 
+                icon={<Braces size={18} />} 
+                label="JSON Format" 
+              />
+            )}
+            {matchesSearch('sql format') && (
+              <NavItem 
+                active={activeTool === 'sql'} 
+                onClick={() => setActiveTool('sql')} 
+                icon={<Database size={18} />} 
+                label="SQL Format" 
+              />
+            )}
+            {matchesSearch('url encode') && (
+              <NavItem 
+                active={activeTool === 'url'} 
+                onClick={() => setActiveTool('url')} 
+                icon={<LinkIcon size={18} />} 
+                label="URL Encode" 
+              />
+            )}
           </div>
         </div>
 
         {/* Generators Section */}
         <div className="px-2">
-          <div className="text-xs font-semibold text-gray-500 px-3 mb-2 uppercase tracking-wider">Generators</div>
+          {(matchesSearch('generators') || matchesSearch('hash')) && (
+             <div className="text-xs font-semibold text-gray-500 px-3 mb-2 uppercase tracking-wider mt-2">Generators</div>
+          )}
           <div className="space-y-1">
-             <NavItem 
-              active={activeTool === 'hash'} 
-              onClick={() => setActiveTool('hash')} 
-              icon={<Hash size={18} />} 
-              label="Hash/MD5" 
-            />
+             {matchesSearch('hash/md5') && (
+              <NavItem 
+                active={activeTool === 'hash'} 
+                onClick={() => setActiveTool('hash')} 
+                icon={<Hash size={18} />} 
+                label="Hash/MD5" 
+              />
+             )}
           </div>
         </div>
 
         {/* Text Section */}
         <div className="px-2">
-          <div className="text-xs font-semibold text-gray-500 px-3 mb-2 uppercase tracking-wider">Text</div>
+          {(matchesSearch('text') || matchesSearch('diff') || matchesSearch('dedupe')) && (
+            <div className="text-xs font-semibold text-gray-500 px-3 mb-2 uppercase tracking-wider mt-2">Text</div>
+          )}
           <div className="space-y-1">
-            <NavItem 
-              active={activeTool === 'diff'} 
-              onClick={() => setActiveTool('diff')} 
-              icon={<Scissors size={18} />} 
-              label="Diff" 
-            />
-            <NavItem 
-              active={activeTool === 'dedupe'} 
-              onClick={() => setActiveTool('dedupe')} 
-              icon={<Files size={18} />} 
-              label="Dedupe" 
-            />
+            {matchesSearch('diff') && (
+              <NavItem 
+                active={activeTool === 'diff'} 
+                onClick={() => setActiveTool('diff')} 
+                icon={<Scissors size={18} />} 
+                label="Diff" 
+              />
+            )}
+            {matchesSearch('dedupe') && (
+              <NavItem 
+                active={activeTool === 'dedupe'} 
+                onClick={() => setActiveTool('dedupe')} 
+                icon={<Files size={18} />} 
+                label="Dedupe" 
+              />
+            )}
           </div>
         </div>
-        
-         <div className="px-4">
-           <button className="text-gray-500 hover:text-gray-300 transition-colors">
-             <Plus size={20} />
-           </button>
-         </div>
-
       </div>
 
       {/* Sidebar Footer */}
@@ -156,7 +208,13 @@ const NavItem: React.FC<{
 
 // --- Main Tool Logic (JSON Formatter) ---
 
-const JsonFormatter = () => {
+interface JsonFormatterProps {
+  isSidebarOpen: boolean;
+  toggleSidebar: () => void;
+  toolLabel: string;
+}
+
+const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [isValid, setIsValid] = useState<boolean>(true);
@@ -254,19 +312,28 @@ const JsonFormatter = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#13141f] text-gray-300">
-      {/* Tool Header - Matching height with sidebar for consistency */}
-      <div className="h-20 border-b border-gray-800 flex items-center justify-between px-6 pt-8 bg-[#13141f] electron-drag select-none">
-        <div className="relative w-96 group electron-no-drag">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 group-hover:text-gray-400 transition-colors" size={16} />
-          <input 
-            type="text" 
-            placeholder="Search tools..." 
-            className="w-full bg-[#1a1b23] border border-gray-700 text-sm text-gray-200 rounded-md pl-10 pr-12 py-1.5 focus:outline-none focus:border-gray-600 focus:bg-[#20212b] transition-all"
-          />
-          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 font-mono">⌘K</span>
-        </div>
+      {/* Tool Header */}
+      <div className="h-12 border-b border-gray-800 flex items-center px-4 bg-[#13141f] electron-drag select-none shrink-0">
         
-        {/* Right side controls removed as requested */}
+        {/* If sidebar is closed, we need to show the spacer for traffic lights and the toggle button */}
+        {!isSidebarOpen && (
+          <>
+            <div className="w-[70px] h-full shrink-0 electron-drag" />
+            <button 
+              onClick={toggleSidebar} 
+              className="electron-no-drag p-1 mr-3 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
+              title="Open Sidebar"
+            >
+              <PanelLeft size={18} />
+            </button>
+          </>
+        )}
+
+        {/* Current Tool Label */}
+        <h2 className="text-sm font-semibold text-gray-200 tracking-wide">{toolLabel}</h2>
+        
+        {/* Right side spacer to push content if needed, or actions */}
+        <div className="flex-1 electron-drag"></div>
       </div>
 
       {/* Workspace */}
@@ -274,9 +341,14 @@ const JsonFormatter = () => {
         
         {/* Input Pane */}
         <div className="flex-1 flex flex-col min-w-0 bg-[#13141f] p-4 pr-0">
-          <div className="text-sm font-medium text-gray-400 mb-2 pl-1">Input (Paste JSON)</div>
+          <div className="flex items-center justify-between mb-2 pl-1 pr-4">
+             <div className="text-sm font-medium text-gray-400">Input (Paste JSON)</div>
+             <button onClick={handleClear} className="text-xs text-gray-500 hover:text-red-400 flex items-center gap-1 transition-colors">
+               <Trash2 size={12} /> Clear
+             </button>
+          </div>
           <div className="flex-1 bg-[#0d0e16] rounded-lg border border-gray-800 overflow-hidden relative group hover:border-gray-700 transition-colors">
-            {/* Line Numbers Fake (Visual only for simplicity) */}
+            {/* Line Numbers Fake */}
             <div className="absolute left-0 top-0 bottom-0 w-10 bg-[#1a1b23] border-r border-gray-800 pt-4 text-right pr-2 text-gray-600 font-mono text-xs select-none">
               {Array.from({ length: Math.min(stats.lines, 20) }).map((_, i) => (
                 <div key={i} className="leading-6">{i + 1}</div>
@@ -326,7 +398,7 @@ const JsonFormatter = () => {
       </div>
 
       {/* Status Bar */}
-      <div className="h-8 bg-[#1a1b23] border-t border-gray-800 flex items-center px-4 justify-between text-xs text-gray-500">
+      <div className="h-8 bg-[#1a1b23] border-t border-gray-800 flex items-center px-4 justify-between text-xs text-gray-500 shrink-0">
         <div className="flex items-center space-x-4">
           <span>Characters: <span className="text-gray-300">{stats.chars}</span></span>
           <span className="w-px h-3 bg-gray-700"></span>
@@ -372,18 +444,46 @@ const ActionButton: React.FC<{ onClick: () => void; icon: React.ReactNode; label
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ToolType>('json');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <div className="flex flex-row h-screen w-full bg-[#13141f] text-white font-sans overflow-hidden selection:bg-blue-500/30">
-      <Sidebar activeTool={activeTool} setActiveTool={setActiveTool} />
+      <Sidebar 
+        activeTool={activeTool} 
+        setActiveTool={setActiveTool} 
+        isOpen={isSidebarOpen}
+        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
       
       {activeTool === 'json' ? (
-        <JsonFormatter />
+        <JsonFormatter 
+          isSidebarOpen={isSidebarOpen}
+          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          toolLabel={TOOL_LABELS['json']}
+        />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-500 bg-[#13141f]">
-          <LayoutTemplate size={64} className="mb-4 opacity-20" />
-          <h2 className="text-xl font-semibold mb-2">Tool Not Implemented</h2>
-          <p className="text-sm">This prototype currently showcases the JSON Format tool.</p>
+        <div className="flex-1 flex flex-col h-full bg-[#13141f]">
+            {/* Generic Header for other tools */}
+            <div className="h-12 border-b border-gray-800 flex items-center px-4 bg-[#13141f] electron-drag select-none shrink-0">
+               {!isSidebarOpen && (
+                <>
+                  <div className="w-[70px] h-full shrink-0 electron-drag" />
+                  <button 
+                    onClick={() => setIsSidebarOpen(true)} 
+                    className="electron-no-drag p-1 mr-3 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    <PanelLeft size={18} />
+                  </button>
+                </>
+              )}
+              <h2 className="text-sm font-semibold text-gray-200 tracking-wide">{TOOL_LABELS[activeTool] || activeTool}</h2>
+            </div>
+            
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+              <LayoutTemplate size={64} className="mb-4 opacity-20" />
+              <h2 className="text-xl font-semibold mb-2">Tool Not Implemented</h2>
+              <p className="text-sm">This prototype currently showcases the JSON Format tool.</p>
+            </div>
         </div>
       )}
     </div>
