@@ -82,9 +82,30 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
     const val = e.target.value;
     if (val) {
       setMode('manual');
+      // Convert standard datetime-local format (YYYY-MM-DDTHH:mm) to something readable if desired,
+      // or just keep ISO format. Replacing T with space makes it look nicer in text input.
       setInput(val.replace('T', ' '));
       const newDate = new Date(val);
       if (!isNaN(newDate.getTime())) setDate(newDate);
+      
+      // Reset the picker value so the same date can be picked again if needed (onChange triggers)
+      e.target.value = '';
+    }
+  };
+
+  const openDatePicker = () => {
+    if (hiddenDateInputRef.current) {
+      try {
+        // Programmatically open the picker
+        if ('showPicker' in HTMLInputElement.prototype) {
+          hiddenDateInputRef.current.showPicker();
+        } else {
+          // Fallback for older browsers (unlikely in Electron, but safe to have)
+          hiddenDateInputRef.current.click(); 
+        }
+      } catch (error) {
+        console.error("Failed to open date picker:", error);
+      }
     }
   };
 
@@ -142,9 +163,13 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
           <div className="bg-panel-bg border border-border-base rounded-xl p-6 shadow-[var(--shadow-card)]">
              <div className="flex gap-4">
                 <div className="flex-1 relative">
-                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary">
+                   <button 
+                     onClick={openDatePicker}
+                     className="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center text-text-secondary hover:text-accent transition-colors z-10 rounded-l-lg focus:outline-none"
+                     title="Pick Date & Time"
+                   >
                       <Calendar size={18} />
-                   </div>
+                   </button>
                    <input 
                       type="text"
                       value={mode === 'live' ? '' : input}
@@ -157,7 +182,8 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
                       type="datetime-local"
                       ref={hiddenDateInputRef}
                       onChange={handleDatePickerChange}
-                      className="absolute inset-0 opacity-0 pointer-events-none"
+                      className="absolute top-10 left-0 opacity-0 pointer-events-none w-0 h-0"
+                      tabIndex={-1}
                    />
                 </div>
                 <button
