@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   PanelLeft, 
   Split, 
@@ -10,7 +10,9 @@ import {
   MinusCircle,
   PlusCircle,
   Loader2,
-  Star
+  Star,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 
 interface DiffToolProps {
@@ -176,6 +178,10 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
   const [debouncedModified, setDebouncedModified] = useState('');
   const [isComputing, setIsComputing] = useState(false);
 
+  // Navigation State
+  const [currentChunkIndex, setCurrentChunkIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Debounce Effect
   useEffect(() => {
     if (mode === 'view') {
@@ -204,6 +210,61 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
 
     return { rows: calculatedRows, stats: { added, removed, total } };
   }, [debouncedOriginal, debouncedModified, mode]);
+
+  // Compute chunks of changes for navigation
+  const diffChunks = useMemo(() => {
+    const chunks: {start: number, end: number}[] = [];
+    if (mode !== 'view') return chunks;
+
+    let start = -1;
+    rows.forEach((row, idx) => {
+      const isDiff = row.left?.type === 'removed' || row.right?.type === 'added';
+      if (isDiff) {
+        if (start === -1) start = idx;
+      } else {
+        if (start !== -1) {
+          chunks.push({ start, end: idx - 1 });
+          start = -1;
+        }
+      }
+    });
+    // Close pending chunk
+    if (start !== -1) {
+      chunks.push({ start, end: rows.length - 1 });
+    }
+    return chunks;
+  }, [rows, mode]);
+
+  // Reset navigation when rows change
+  useEffect(() => {
+    setCurrentChunkIndex(-1);
+  }, [rows]);
+
+  const scrollToChunk = (index: number) => {
+    if (index >= 0 && index < diffChunks.length) {
+      const chunk = diffChunks[index];
+      const rowEl = document.getElementById(`diff-row-${chunk.start}`);
+      if (rowEl) {
+         rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  };
+
+  const handleNextDiff = () => {
+    if (diffChunks.length === 0) return;
+    const next = currentChunkIndex + 1;
+    const target = next >= diffChunks.length ? 0 : next;
+    setCurrentChunkIndex(target);
+    scrollToChunk(target);
+  };
+
+  const handlePrevDiff = () => {
+    if (diffChunks.length === 0) return;
+    const prev = currentChunkIndex - 1;
+    const target = prev < 0 ? diffChunks.length - 1 : prev;
+    setCurrentChunkIndex(target);
+    scrollToChunk(target);
+  };
 
   const handleSwap = () => {
     setOriginal(modified);
@@ -346,7 +407,30 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
                </div>
 
                <div className="flex items-center space-x-4">
-                  <span className="text-xs text-text-secondary">{rows.length} rows</span>
+                  {/* Navigation Controls */}
+                  {diffChunks.length > 0 && (
+                    <div className="flex items-center space-x-1 mr-2 bg-panel-bg rounded-md p-0.5 border border-border-base">
+                       <button 
+                        onClick={handlePrevDiff}
+                        className="p-1 hover:bg-hover-overlay rounded-sm text-text-secondary hover:text-text-primary transition-colors"
+                        title="Previous Difference"
+                       >
+                         <ChevronUp size={14} />
+                       </button>
+                       <span className="text-xs font-mono px-2 min-w-[3.5rem] text-center select-none text-text-secondary">
+                         {currentChunkIndex !== -1 ? currentChunkIndex + 1 : '-'} / {diffChunks.length}
+                       </span>
+                       <button 
+                        onClick={handleNextDiff}
+                        className="p-1 hover:bg-hover-overlay rounded-sm text-text-secondary hover:text-text-primary transition-colors"
+                        title="Next Difference"
+                       >
+                         <ChevronDown size={14} />
+                       </button>
+                    </div>
+                  )}
+
+                  <span className="text-xs text-text-secondary hidden sm:inline">{rows.length} rows</span>
                   <button 
                     onClick={handleCopyResult}
                     className="flex items-center space-x-1 text-xs font-medium text-text-primary hover:text-accent transition-colors"
@@ -358,46 +442,56 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
             </div>
 
             {/* Diff View */}
-            <div className={`flex-1 overflow-auto bg-app-bg ${isComputing ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div ref={containerRef} className={`flex-1 overflow-auto bg-app-bg ${isComputing ? 'opacity-50 pointer-events-none' : ''}`}>
               {rows.length === 0 ? (
                 <div className="p-8 text-center text-text-secondary">No differences found or empty inputs.</div>
               ) : (
-                <div className="flex flex-col min-w-fit font-mono text-xs">
-                   {rows.map((row, idx) => (
-                     <div key={idx} className="flex w-full group hover:bg-hover-overlay/50">
-                        
-                        {/* LEFT PANE */}
-                        <div className={`flex-1 flex min-w-0 border-r border-border-base/40 ${
-                          row.left?.type === 'removed' ? 'bg-red-500/10' : ''
-                        }`}>
-                           <div className="w-10 shrink-0 text-right pr-3 py-1 select-none text-text-secondary/40">
-                             {row.left?.lineNumber}
-                           </div>
-                           <div className={`flex-1 pl-2 pr-2 py-1 whitespace-pre-wrap break-all ${
-                             row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
-                           }`}>
-                             {row.left?.content}
-                           </div>
-                        </div>
+                <div className="flex flex-col min-w-fit font-mono text-xs pb-8">
+                   {rows.map((row, idx) => {
+                     const isSelected = currentChunkIndex !== -1 && idx >= diffChunks[currentChunkIndex].start && idx <= diffChunks[currentChunkIndex].end;
+                     return (
+                       <div 
+                         key={idx} 
+                         id={`diff-row-${idx}`}
+                         className={`flex w-full group transition-colors duration-150 ${
+                           isSelected ? 'bg-accent/5 relative z-10' : 'hover:bg-hover-overlay/50'
+                         }`}
+                       >
+                          {isSelected && (
+                             <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-accent" />
+                          )}
+                          
+                          {/* LEFT PANE */}
+                          <div className={`flex-1 flex min-w-0 border-r border-border-base/40 ${
+                            row.left?.type === 'removed' ? 'bg-red-500/10' : ''
+                          }`}>
+                             <div className="w-10 shrink-0 text-right pr-3 py-1 select-none text-text-secondary/40">
+                               {row.left?.lineNumber}
+                             </div>
+                             <div className={`flex-1 pl-2 pr-2 py-1 whitespace-pre-wrap break-all ${
+                               row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
+                             }`}>
+                               {row.left?.content}
+                             </div>
+                          </div>
 
-                        {/* RIGHT PANE */}
-                        <div className={`flex-1 flex min-w-0 ${
-                          row.right?.type === 'added' ? 'bg-green-500/10' : ''
-                        }`}>
-                           <div className="w-10 shrink-0 text-right pr-3 py-1 select-none text-text-secondary/40">
-                             {row.right?.lineNumber}
-                           </div>
-                           <div className={`flex-1 pl-2 pr-2 py-1 whitespace-pre-wrap break-all ${
-                             row.right?.type === 'added' ? 'text-text-primary' : 'text-text-secondary'
-                           }`}>
-                             {row.right?.content}
-                           </div>
-                        </div>
+                          {/* RIGHT PANE */}
+                          <div className={`flex-1 flex min-w-0 ${
+                            row.right?.type === 'added' ? 'bg-green-500/10' : ''
+                          }`}>
+                             <div className="w-10 shrink-0 text-right pr-3 py-1 select-none text-text-secondary/40">
+                               {row.right?.lineNumber}
+                             </div>
+                             <div className={`flex-1 pl-2 pr-2 py-1 whitespace-pre-wrap break-all ${
+                               row.right?.type === 'added' ? 'text-text-primary' : 'text-text-secondary'
+                             }`}>
+                               {row.right?.content}
+                             </div>
+                          </div>
 
-                     </div>
-                   ))}
-                   {/* Extra space at bottom */}
-                   <div className="h-8"></div>
+                       </div>
+                     );
+                   })}
                 </div>
               )}
             </div>
