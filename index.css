@@ -95,40 +95,42 @@
   }
 
   [data-theme='glass'] {
-    /* Glassmorphism / Frost Theme - Stone/Taupe Edition (#B2AEAB) */
+    /* "Settings Popup" Style - Dark Frosted Glass (Taupe Accent) */
     
-    /* Background: Transparent to reveal body gradient */
-    --color-app-bg: transparent;
+    --color-app-bg: transparent; /* Handled by body gradient */
     
-    /* Frosted Layers - High transparency for glass effect */
-    --color-sidebar-bg: rgba(255, 255, 255, 0.35); 
-    --color-panel-bg: rgba(255, 255, 255, 0.45);
+    /* Dark, highly translucent layers mimicking the settings overlay feel */
+    --color-sidebar-bg: rgba(20, 20, 20, 0.75); 
+    --color-panel-bg: rgba(30, 30, 30, 0.65);
     
-    /* Elements on top of panels */
-    --color-element-bg: rgba(255, 255, 255, 0.4);
-    --color-input-bg: rgba(255, 255, 255, 0.2);
+    /* Subtle contrast for elements */
+    --color-element-bg: rgba(255, 255, 255, 0.07);
+    --color-input-bg: rgba(0, 0, 0, 0.4);
     
-    /* Borders: Semi-transparent white to simulate glass edges */
-    --color-border: rgba(255, 255, 255, 0.5);
-    --color-border-hover: rgba(255, 255, 255, 0.8);
+    /* Fine, crisp borders for glass edges */
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-border-hover: rgba(255, 255, 255, 0.2);
     
-    /* Text: Dark grey for contrast against light glass */
-    --color-text-primary: #1c1917;   /* Stone 900 */
-    --color-text-secondary: #57534e; /* Stone 600 */
+    /* Bright text for readability on dark glass */
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #a1a1aa; /* Zinc-400 */
     
-    /* Accent: Darker stone/taupe to complement #B2AEAB and be visible on white buttons */
-    --color-accent: #7d7976; 
+    /* Stone/Taupe Accent (#B2AEAB) */
+    --color-accent: #B2AEAB;
     
-    --color-active-item: rgba(255, 255, 255, 0.5);
-    --color-hover-overlay: rgba(255, 255, 255, 0.25);
+    --color-active-item: rgba(178, 174, 171, 0.15); /* Tint of accent */
+    --color-hover-overlay: rgba(255, 255, 255, 0.05);
     
-    /* Stronger shadow for glass depth */
-    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   }
-  
-  /* Glass Theme Body Gradient Override */
+
+  /* Deep atmospheric background for Glass Theme */
   [data-theme='glass'] body {
-     background-image: linear-gradient(135deg, #e7e5e4 0%, #B2AEAB 100%);
+     background-color: #050505;
+     /* subtle glows of Stone/Taupe in deep dark background */
+     background-image: 
+        radial-gradient(circle at 50% 0%, rgba(87, 83, 78, 0.35) 0px, transparent 65%),
+        radial-gradient(circle at 100% 100%, rgba(178, 174, 171, 0.1) 0px, transparent 50%);
      background-attachment: fixed;
      background-repeat: no-repeat;
   }
@@ -145,7 +147,7 @@ body {
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   /* Add subtle texture edge */
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* Custom Scrollbar */
