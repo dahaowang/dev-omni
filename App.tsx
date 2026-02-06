@@ -14,6 +14,7 @@ import { TimestampTool } from './components/tools/TimestampTool';
 import { ColorPickerTool } from './components/tools/ColorPickerTool';
 import { RandomStringTool } from './components/tools/RandomStringTool';
 import { QrCodeTool } from './components/tools/QrCodeTool';
+import { TextJoinerTool } from './components/tools/TextJoinerTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -32,7 +33,8 @@ const TOOL_LABELS: Record<string, string> = {
   hash: 'Hash/MD5 Generator',
   diff: 'Text Diff',
   dedupe: 'Dedupe Lines',
-  qrcode: 'QR Code Tool'
+  qrcode: 'QR Code Tool',
+  'text-joiner': 'Text Joiner'
 };
 
 // --- Main App Layout ---
@@ -98,6 +100,8 @@ const App: React.FC = () => {
         return <RandomStringTool {...commonProps} />;
       case 'qrcode':
         return <QrCodeTool {...commonProps} />;
+      case 'text-joiner':
+        return <TextJoinerTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
