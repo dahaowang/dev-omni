@@ -95,30 +95,42 @@
   }
 
   [data-theme='glass'] {
-    /* Glassmorphism / Frost Theme (Light Version) */
-    /* Solid deeper background to provide contrast with white glass panels */
-    --color-app-bg: #cbd5e1;  /* Slate 300 */
+    /* Glassmorphism / Frost Theme - Stone/Taupe Edition (#B2AEAB) */
     
-    /* Frosted White Layers - Slightly more opaque for visibility */
-    --color-sidebar-bg: rgba(255, 255, 255, 0.7); 
-    --color-panel-bg: rgba(255, 255, 255, 0.65);
-    --color-element-bg: rgba(255, 255, 255, 0.75);
-    --color-input-bg: rgba(255, 255, 255, 0.4);
+    /* Background: Transparent to reveal body gradient */
+    --color-app-bg: transparent;
     
-    /* Crisp White/Subtle Grey Borders */
-    --color-border: rgba(255, 255, 255, 0.8);
-    --color-border-hover: #ffffff;
+    /* Frosted Layers - High transparency for glass effect */
+    --color-sidebar-bg: rgba(255, 255, 255, 0.35); 
+    --color-panel-bg: rgba(255, 255, 255, 0.45);
     
-    /* Dark Text for Contrast */
-    --color-text-primary: #1e293b;   /* Slate 800 */
-    --color-text-secondary: #475569; /* Slate 600 */
+    /* Elements on top of panels */
+    --color-element-bg: rgba(255, 255, 255, 0.4);
+    --color-input-bg: rgba(255, 255, 255, 0.2);
     
-    --color-accent: #2563eb;         /* Blue 600 */
-    --color-active-item: rgba(255, 255, 255, 0.9);
-    --color-hover-overlay: rgba(255, 255, 255, 0.6);
+    /* Borders: Semi-transparent white to simulate glass edges */
+    --color-border: rgba(255, 255, 255, 0.5);
+    --color-border-hover: rgba(255, 255, 255, 0.8);
     
-    /* Soft shadow for depth */
-    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+    /* Text: Dark grey for contrast against light glass */
+    --color-text-primary: #1c1917;   /* Stone 900 */
+    --color-text-secondary: #57534e; /* Stone 600 */
+    
+    /* Accent: Darker stone/taupe to complement #B2AEAB and be visible on white buttons */
+    --color-accent: #7d7976; 
+    
+    --color-active-item: rgba(255, 255, 255, 0.5);
+    --color-hover-overlay: rgba(255, 255, 255, 0.25);
+    
+    /* Stronger shadow for glass depth */
+    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Glass Theme Body Gradient Override */
+  [data-theme='glass'] body {
+     background-image: linear-gradient(135deg, #e7e5e4 0%, #B2AEAB 100%);
+     background-attachment: fixed;
+     background-repeat: no-repeat;
   }
 }
 
@@ -126,12 +138,14 @@ body {
   @apply bg-app-bg text-text-primary transition-colors duration-200;
 }
 
-/* Apply Backdrop Blur for Glass Theme */
+/* Apply Enhanced Backdrop Blur for Glass Theme */
 [data-theme='glass'] .bg-sidebar-bg,
 [data-theme='glass'] .bg-panel-bg,
 [data-theme='glass'] .bg-element-bg {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  /* Add subtle texture edge */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 /* Custom Scrollbar */
