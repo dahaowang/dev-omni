@@ -15,7 +15,8 @@ import {
   Clock,
   Palette,
   Dices,
-  Star
+  Star,
+  ChevronDown
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -59,8 +60,18 @@ const TOOLS: ToolConfig[] = [
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isOpen, toggleSidebar, onSettingsClick, favorites, onToggleFavorite }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({
+    favorites: true,
+    converters: true,
+    generators: true,
+    text: true
+  });
 
   if (!isOpen) return null;
+
+  const toggleSection = (key: string) => {
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const filteredTools = TOOLS.filter(t => 
     t.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -108,14 +119,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
     );
   };
 
-  const renderSection = (title: string, tools: ToolConfig[]) => {
+  const renderSection = (title: string, tools: ToolConfig[], sectionKey: string) => {
     if (tools.length === 0) return null;
+    
+    // Force expand if searching, otherwise use state
+    const isExpanded = searchTerm ? true : expanded[sectionKey];
+
     return (
-      <div className="mb-4">
-        <div className="text-[10px] font-bold text-text-secondary px-3 mb-1.5 uppercase tracking-wider opacity-80">{title}</div>
-        <div className="space-y-0.5 px-2">
-          {tools.map(renderNavItem)}
-        </div>
+      <div className="mb-2">
+        <button 
+          onClick={() => !searchTerm && toggleSection(sectionKey)}
+          className={`w-full flex items-center justify-between px-3 py-1.5 mb-0.5 group focus:outline-none ${searchTerm ? 'cursor-default' : 'cursor-pointer'}`}
+        >
+          <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider opacity-80 group-hover:opacity-100 transition-opacity select-none">
+            {title}
+          </div>
+          {!searchTerm && (
+            <ChevronDown 
+              size={12} 
+              className={`text-text-secondary opacity-50 group-hover:opacity-100 transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'}`} 
+            />
+          )}
+        </button>
+        
+        {isExpanded && (
+          <div className="space-y-0.5 px-2 animate-fade-in">
+            {tools.map(renderNavItem)}
+          </div>
+        )}
       </div>
     );
   };
@@ -144,13 +175,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
       <div className="flex-1 overflow-y-auto py-2">
         {/* Favorites Section */}
         {!searchTerm && favoriteTools.length > 0 && (
-          renderSection('Favorites', favoriteTools)
+          renderSection('Favorites', favoriteTools, 'favorites')
         )}
 
         {/* Categories */}
-        {renderSection('Converters', filteredTools.filter(t => t.category === 'converters'))}
-        {renderSection('Generators', filteredTools.filter(t => t.category === 'generators'))}
-        {renderSection('Text', filteredTools.filter(t => t.category === 'text'))}
+        {renderSection('Converters', filteredTools.filter(t => t.category === 'converters'), 'converters')}
+        {renderSection('Generators', filteredTools.filter(t => t.category === 'generators'), 'generators')}
+        {renderSection('Text', filteredTools.filter(t => t.category === 'text'), 'text')}
       </div>
 
       {/* Bottom Actions */}
