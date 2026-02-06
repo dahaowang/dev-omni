@@ -66,9 +66,7 @@ const App: React.FC = () => {
     const commonProps = {
       isSidebarOpen,
       toggleSidebar: () => setIsSidebarOpen(!isSidebarOpen),
-      toolLabel: TOOL_LABELS[activeTool] || activeTool,
-      isFavorite: favorites.includes(activeTool),
-      onToggleFavorite: () => toggleFavorite(activeTool)
+      toolLabel: TOOL_LABELS[activeTool] || activeTool
     };
 
     switch (activeTool) {
@@ -110,6 +108,7 @@ const App: React.FC = () => {
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onSettingsClick={() => setIsSettingsOpen(true)}
         favorites={favorites}
+        onToggleFavorite={toggleFavorite}
       />
       
       {/* Tool Container with Animation Key */}

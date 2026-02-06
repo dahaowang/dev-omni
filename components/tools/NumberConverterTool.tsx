@@ -4,17 +4,13 @@ import {
   Copy, 
   CheckCircle2, 
   Trash2,
-  ArrowRightLeft,
-  ArrowDownUp,
-  Star
+  ArrowDownUp
 } from 'lucide-react';
 
 interface NumberConverterToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
 }
 
 const BASES = [
@@ -24,7 +20,7 @@ const BASES = [
   { label: 'Hexadecimal (Base 16)', value: 16 },
 ];
 
-export const NumberConverterTool: React.FC<NumberConverterToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
+export const NumberConverterTool: React.FC<NumberConverterToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [fromBase, setFromBase] = useState(10);
@@ -114,13 +110,6 @@ export const NumberConverterTool: React.FC<NumberConverterToolProps> = ({ isSide
           )}
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-            <button 
-              onClick={onToggleFavorite} 
-              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            >
-               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
-            </button>
           </div>
         </div>
 

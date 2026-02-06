@@ -4,18 +4,14 @@ import {
   Copy, 
   CheckCircle2, 
   Palette,
-  RefreshCw,
   Pipette,
-  ChevronDown,
-  Star
+  ChevronDown
 } from 'lucide-react';
 
 interface ColorPickerToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
 }
 
 interface ColorFormat {
@@ -90,7 +86,7 @@ const hslToHex = (h: number, s: number, l: number) => {
 
 type PaletteType = 'analogous' | 'monochromatic' | 'triadic' | 'complementary' | 'split-complementary';
 
-export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
+export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [color, setColor] = useState<string>('#6366f1'); // Default to Accent Color
   const [paletteType, setPaletteType] = useState<PaletteType>('analogous');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -209,13 +205,6 @@ export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen,
           )}
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-            <button 
-              onClick={onToggleFavorite} 
-              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            >
-               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
-            </button>
           </div>
         </div>
       </div>

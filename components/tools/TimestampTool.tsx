@@ -5,16 +5,13 @@ import {
   Copy, 
   CheckCircle2, 
   RefreshCw, 
-  Play,
-  Star
+  Play
 } from 'lucide-react';
 
 interface TimestampToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
 }
 
 interface FormatRow {
@@ -23,7 +20,7 @@ interface FormatRow {
   desc?: string;
 }
 
-export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
+export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [mode, setMode] = useState<'live' | 'manual'>('live');
   const [date, setDate] = useState<Date>(new Date());
   const [input, setInput] = useState<string>('');
@@ -144,13 +141,6 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
           )}
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-            <button 
-              onClick={onToggleFavorite} 
-              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            >
-               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
-            </button>
           </div>
         </div>
       </div>

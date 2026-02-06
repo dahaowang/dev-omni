@@ -8,7 +8,6 @@ import {
   Copy, 
   AlertCircle,
   PanelLeft,
-  Star,
   AlertTriangle,
   Check
 } from 'lucide-react';
@@ -18,8 +17,6 @@ interface JsonFormatterProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
 }
 
 const runLint = (json: any): string[] => {
@@ -66,7 +63,7 @@ const runLint = (json: any): string[] => {
   return warnings;
 };
 
-export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
+export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [isValid, setIsValid] = useState<boolean>(true);
@@ -192,14 +189,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
             </>
           )}
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-            <button 
-              onClick={onToggleFavorite} 
-              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            >
-               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
-            </button>
+            <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
           </div>
         </div>
       </div>

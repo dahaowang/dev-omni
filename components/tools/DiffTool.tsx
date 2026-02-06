@@ -10,7 +10,6 @@ import {
   MinusCircle,
   PlusCircle,
   Loader2,
-  Star,
   ChevronUp,
   ChevronDown
 } from 'lucide-react';
@@ -19,8 +18,6 @@ interface DiffToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
 }
 
 type DiffType = 'same' | 'added' | 'removed';
@@ -167,7 +164,7 @@ const processDiffToRows = (diffs: DiffLine[]): DiffRow[] => {
   return rows;
 };
 
-export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
+export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [original, setOriginal] = useState('');
   const [modified, setModified] = useState('');
   const [mode, setMode] = useState<'edit' | 'view'>('edit');
@@ -301,13 +298,6 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
           )}
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-            <button 
-              onClick={onToggleFavorite} 
-              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            >
-               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
-            </button>
           </div>
         </div>
 

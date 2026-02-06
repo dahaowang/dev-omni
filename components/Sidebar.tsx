@@ -14,7 +14,8 @@ import {
   FileCode,
   Clock,
   Palette,
-  Dices
+  Dices,
+  Star
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -25,6 +26,7 @@ interface SidebarProps {
   toggleSidebar: () => void;
   onSettingsClick: () => void;
   favorites: ToolType[];
+  onToggleFavorite: (toolId: ToolType) => void;
 }
 
 interface ToolConfig {
@@ -55,7 +57,7 @@ const TOOLS: ToolConfig[] = [
   { id: 'dedupe', label: 'Dedupe', icon: <Files size={16} />, category: 'text', keywords: ['dedupe', 'unique', 'list'] },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isOpen, toggleSidebar, onSettingsClick, favorites }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isOpen, toggleSidebar, onSettingsClick, favorites, onToggleFavorite }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   if (!isOpen) return null;
@@ -67,20 +69,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
 
   const renderNavItem = (tool: ToolConfig) => {
     const active = activeTool === tool.id;
+    const isFav = favorites.includes(tool.id);
+
     return (
       <button 
         key={tool.id}
         onClick={() => setActiveTool(tool.id)}
-        className={`w-full flex items-center space-x-3 px-3 py-1.5 rounded-md transition-all duration-200 group ${
+        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-md transition-all duration-200 group ${
           active 
             ? 'bg-active-item text-text-primary font-medium' 
             : 'text-text-secondary hover:text-text-primary hover:bg-hover-overlay'
         }`}
       >
-        <div className={`transition-colors ${active ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`}>
-          {tool.icon}
+        <div className="flex items-center space-x-3 overflow-hidden">
+          <div className={`transition-colors shrink-0 ${active ? 'text-accent' : 'text-text-secondary group-hover:text-text-primary'}`}>
+            {tool.icon}
+          </div>
+          <span className="text-xs font-medium truncate">{tool.label}</span>
         </div>
-        <span className="text-xs font-medium truncate">{tool.label}</span>
+
+        {/* Favorite Star */}
+        <div 
+          role="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(tool.id);
+          }}
+          className={`p-1 rounded-md hover:bg-hover-overlay transition-all duration-200 shrink-0 ${
+            isFav 
+              ? 'text-accent opacity-100' 
+              : 'text-text-secondary opacity-0 group-hover:opacity-100 hover:!opacity-100'
+          }`}
+          title={isFav ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Star size={12} className={isFav ? "fill-current" : ""} />
+        </div>
       </button>
     );
   };
@@ -103,7 +126,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
     <div className="w-64 bg-sidebar-bg h-full flex flex-col border-r border-border-base flex-shrink-0 transition-colors duration-200">
       
       {/* Top Region: Drag + Search */}
-      {/* Changed pt-8 to pt-14 to align search bar below the right-side header line */}
       <div className="pt-14 pb-2 px-3 electron-drag flex flex-col gap-2 shrink-0">
          {/* Search Box - Compacted */}
          <div className="relative group electron-no-drag">

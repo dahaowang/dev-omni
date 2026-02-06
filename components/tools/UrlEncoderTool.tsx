@@ -4,22 +4,18 @@ import {
   Copy, 
   CheckCircle2, 
   Trash2,
-  ArrowRightLeft,
-  Link as LinkIcon,
-  Star
+  ArrowRightLeft
 } from 'lucide-react';
 
 interface UrlEncoderToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
 }
 
 type Mode = 'encode' | 'decode';
 
-export const UrlEncoderTool: React.FC<UrlEncoderToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
+export const UrlEncoderTool: React.FC<UrlEncoderToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [mode, setMode] = useState<Mode>('encode');
@@ -82,13 +78,6 @@ export const UrlEncoderTool: React.FC<UrlEncoderToolProps> = ({ isSidebarOpen, t
           )}
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-            <button 
-              onClick={onToggleFavorite} 
-              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            >
-               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
-            </button>
           </div>
         </div>
 

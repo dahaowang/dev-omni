@@ -5,16 +5,13 @@ import {
   RefreshCw, 
   Dices, 
   CheckCircle2, 
-  Settings2,
-  Star
+  Settings2
 } from 'lucide-react';
 
 interface RandomStringToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
 }
 
 const CHAR_SETS = {
@@ -24,7 +21,7 @@ const CHAR_SETS = {
   symbols: '!@#$%^&*()_+~`|}{[]:;?><,./-='
 };
 
-export const RandomStringTool: React.FC<RandomStringToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, isFavorite, onToggleFavorite }) => {
+export const RandomStringTool: React.FC<RandomStringToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [length, setLength] = useState<number>(32);
   const [options, setOptions] = useState({
     uppercase: true,
@@ -100,13 +97,6 @@ export const RandomStringTool: React.FC<RandomStringToolProps> = ({ isSidebarOpe
           )}
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-            <button 
-              onClick={onToggleFavorite} 
-              className="electron-no-drag text-text-secondary hover:text-accent transition-colors p-1 rounded-md hover:bg-hover-overlay"
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            >
-               <Star size={16} className={isFavorite ? "fill-accent text-accent" : ""} />
-            </button>
           </div>
         </div>
       </div>
