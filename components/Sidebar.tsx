@@ -16,7 +16,8 @@ import {
   Palette,
   Dices,
   Star,
-  ChevronDown
+  ChevronDown,
+  QrCode
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -48,6 +49,7 @@ const TOOLS: ToolConfig[] = [
   { id: 'base64', label: 'Base64', icon: <Binary size={16} />, category: 'converters', keywords: ['base64', 'encode', 'decode'] },
   
   // Generators
+  { id: 'qrcode', label: 'QR Code', icon: <QrCode size={16} />, category: 'generators', keywords: ['qr', 'barcode', 'scan', 'read'] },
   { id: 'timestamp', label: 'Timestamp', icon: <Clock size={16} />, category: 'generators', keywords: ['time', 'date', 'epoch'] },
   { id: 'color', label: 'Color Picker', icon: <Palette size={16} />, category: 'generators', keywords: ['color', 'hex', 'rgb'] },
   { id: 'random-string', label: 'Random String', icon: <Dices size={16} />, category: 'generators', keywords: ['random', 'password', 'string'] },

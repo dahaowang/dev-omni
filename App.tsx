@@ -13,6 +13,7 @@ import { JsonToYamlTool } from './components/tools/JsonToYamlTool';
 import { TimestampTool } from './components/tools/TimestampTool';
 import { ColorPickerTool } from './components/tools/ColorPickerTool';
 import { RandomStringTool } from './components/tools/RandomStringTool';
+import { QrCodeTool } from './components/tools/QrCodeTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -30,7 +31,8 @@ const TOOL_LABELS: Record<string, string> = {
   'random-string': 'Random String',
   hash: 'Hash/MD5 Generator',
   diff: 'Text Diff',
-  dedupe: 'Dedupe Lines'
+  dedupe: 'Dedupe Lines',
+  qrcode: 'QR Code Tool'
 };
 
 // --- Main App Layout ---
@@ -94,6 +96,8 @@ const App: React.FC = () => {
         return <ColorPickerTool {...commonProps} />;
       case 'random-string':
         return <RandomStringTool {...commonProps} />;
+      case 'qrcode':
+        return <QrCodeTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
