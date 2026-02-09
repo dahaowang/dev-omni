@@ -11,7 +11,9 @@ import {
   PlusCircle,
   Loader2,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  ScanText,
+  Space
 } from 'lucide-react';
 
 interface DiffToolProps {
@@ -21,6 +23,11 @@ interface DiffToolProps {
 }
 
 type DiffType = 'same' | 'added' | 'removed';
+
+interface DiffPart {
+  type: DiffType;
+  content: string;
+}
 
 interface DiffLine {
   type: DiffType;
@@ -38,58 +45,55 @@ interface DiffRow {
   right?: DiffRowItem;
 }
 
-// Optimized Diff Algorithm
-const computeLineDiff = (text1: string, text2: string): DiffLine[] => {
-  const lines1 = text1.split(/\r?\n/);
-  const lines2 = text2.split(/\r?\n/);
+// --- Generalized LCS Algorithm ---
 
+/**
+ * Calculates the Longest Common Subsequence and returns the diff chunks.
+ * @param seq1 Array of items (lines or chars)
+ * @param seq2 Array of items
+ * @param isEqual Comparator function
+ * @returns Array of DiffPart
+ */
+function computeDiff<T>(
+  seq1: T[], 
+  seq2: T[], 
+  isEqual: (a: T, b: T) => boolean
+): { type: DiffType, content: T }[] {
+  
   // 1. Prefix Optimization
   let start = 0;
-  while (
-    start < lines1.length && 
-    start < lines2.length && 
-    lines1[start] === lines2[start]
-  ) {
+  while (start < seq1.length && start < seq2.length && isEqual(seq1[start], seq2[start])) {
     start++;
   }
 
   // 2. Suffix Optimization
-  let end1 = lines1.length - 1;
-  let end2 = lines2.length - 1;
-  while (
-    end1 >= start && 
-    end2 >= start && 
-    lines1[end1] === lines2[end2]
-  ) {
+  let end1 = seq1.length - 1;
+  let end2 = seq2.length - 1;
+  while (end1 >= start && end2 >= start && isEqual(seq1[end1], seq2[end2])) {
     end1--;
     end2--;
   }
 
-  // The middle part that actually changed
-  const mid1 = lines1.slice(start, end1 + 1);
-  const mid2 = lines2.slice(start, end2 + 1);
+  const mid1 = seq1.slice(start, end1 + 1);
+  const mid2 = seq2.slice(start, end2 + 1);
 
-  let diffs: DiffLine[] = [];
+  let diffs: { type: DiffType, content: T }[] = [];
 
   const m = mid1.length;
   const n = mid2.length;
 
-  // Handle empty middle cases (pure additions or removals)
   if (m === 0) {
-    diffs = mid2.map(l => ({ type: 'added', content: l }));
+    diffs = mid2.map(item => ({ type: 'added', content: item }));
   } else if (n === 0) {
-    diffs = mid1.map(l => ({ type: 'removed', content: l }));
+    diffs = mid1.map(item => ({ type: 'removed', content: item }));
   } else {
-    // LCS with flattened 1D array for memory efficiency
+    // DP Matrix
     const width = n + 1;
     const dp = new Int32Array((m + 1) * width);
-    
-    // Accessor helpers inline (compiler optimizes these in JS usually, but manual indexing is safer for perf)
-    // dp[i * width + j]
-    
+
     for (let i = 1; i <= m; i++) {
       for (let j = 1; j <= n; j++) {
-        if (mid1[i - 1] === mid2[j - 1]) {
+        if (isEqual(mid1[i - 1], mid2[j - 1])) {
           dp[i * width + j] = dp[(i - 1) * width + (j - 1)] + 1;
         } else {
           const up = dp[(i - 1) * width + j];
@@ -99,10 +103,10 @@ const computeLineDiff = (text1: string, text2: string): DiffLine[] => {
       }
     }
 
-    // Backtrack to generate diff
+    // Backtrack
     let i = m, j = n;
     while (i > 0 || j > 0) {
-      if (i > 0 && j > 0 && mid1[i - 1] === mid2[j - 1]) {
+      if (i > 0 && j > 0 && isEqual(mid1[i - 1], mid2[j - 1])) {
         diffs.unshift({ type: 'same', content: mid1[i - 1] });
         i--; j--;
       } else if (j > 0 && (i === 0 || dp[i * width + (j - 1)] >= dp[(i - 1) * width + j])) {
@@ -115,11 +119,57 @@ const computeLineDiff = (text1: string, text2: string): DiffLine[] => {
     }
   }
 
-  // Reconstruct full result
-  const prefix = lines1.slice(0, start).map(l => ({ type: 'same', content: l } as DiffLine));
-  const suffix = lines1.slice(end1 + 1).map(l => ({ type: 'same', content: l } as DiffLine));
+  const prefix = seq1.slice(0, start).map(item => ({ type: 'same' as DiffType, content: item }));
+  const suffix = seq1.slice(end1 + 1).map(item => ({ type: 'same' as DiffType, content: item }));
 
   return [...prefix, ...diffs, ...suffix];
+}
+
+// --- Specific Implementations ---
+
+const normalize = (str: string) => str.trim().replace(/\s+/g, ' ');
+
+const computeLineDiff = (text1: string, text2: string, ignoreWhitespace: boolean): DiffLine[] => {
+  const lines1 = text1.split(/\r?\n/);
+  const lines2 = text2.split(/\r?\n/);
+
+  const comparator = (a: string, b: string) => {
+    if (ignoreWhitespace) return normalize(a) === normalize(b);
+    return a === b;
+  };
+
+  return computeDiff(lines1, lines2, comparator);
+};
+
+const computeInlineDiff = (text1: string, text2: string): DiffPart[] => {
+  // We use a character based diff for inline highlighting
+  // Simple equality check for characters
+  const chars1 = text1.split('');
+  const chars2 = text2.split('');
+  
+  const rawDiffs = computeDiff(chars1, chars2, (a, b) => a === b);
+  
+  // Aggregate adjacent chars of same type back into strings for rendering performance
+  const aggregated: DiffPart[] = [];
+  if (rawDiffs.length === 0) return [];
+
+  let current = rawDiffs[0];
+  // convert single char content to string holder
+  let buffer = current.content; 
+  
+  for (let i = 1; i < rawDiffs.length; i++) {
+    const next = rawDiffs[i];
+    if (next.type === current.type) {
+      buffer += next.content;
+    } else {
+      aggregated.push({ type: current.type, content: buffer });
+      current = next;
+      buffer = next.content;
+    }
+  }
+  aggregated.push({ type: current.type, content: buffer });
+  
+  return aggregated;
 };
 
 // Align diffs side-by-side
@@ -164,12 +214,44 @@ const processDiffToRows = (diffs: DiffLine[]): DiffRow[] => {
   return rows;
 };
 
+// --- Components ---
+
+const InlineDiffRenderer: React.FC<{ parts: DiffPart[], displayType: 'left' | 'right' }> = ({ parts, displayType }) => {
+  return (
+    <span>
+      {parts.map((part, idx) => {
+        // If we are rendering the LEFT side (Original), we show 'same' and 'removed'. We ignore 'added'.
+        if (displayType === 'left') {
+           if (part.type === 'added') return null;
+           return (
+             <span key={idx} className={part.type === 'removed' ? 'bg-red-500/40 rounded-[2px]' : ''}>
+               {part.content}
+             </span>
+           );
+        } else {
+        // If we are rendering the RIGHT side (Modified), we show 'same' and 'added'. We ignore 'removed'.
+           if (part.type === 'removed') return null;
+           return (
+             <span key={idx} className={part.type === 'added' ? 'bg-green-500/40 rounded-[2px]' : ''}>
+               {part.content}
+             </span>
+           );
+        }
+      })}
+    </span>
+  );
+};
+
 export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [original, setOriginal] = useState('');
   const [modified, setModified] = useState('');
   const [mode, setMode] = useState<'edit' | 'view'>('edit');
   const [copyFeedback, setCopyFeedback] = useState(false);
   
+  // Options
+  const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
+  const [showInlineDiff, setShowInlineDiff] = useState(true);
+
   // Debounce State
   const [debouncedOriginal, setDebouncedOriginal] = useState('');
   const [debouncedModified, setDebouncedModified] = useState('');
@@ -198,7 +280,7 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
     if (mode !== 'view') return { rows: [], stats: { added: 0, removed: 0, total: 0 } };
     
     // Use debounced values here
-    const linearDiff = computeLineDiff(debouncedOriginal, debouncedModified);
+    const linearDiff = computeLineDiff(debouncedOriginal, debouncedModified, ignoreWhitespace);
     const calculatedRows = processDiffToRows(linearDiff);
     
     const added = linearDiff.filter(l => l.type === 'added').length;
@@ -206,7 +288,7 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
     const total = linearDiff.length;
 
     return { rows: calculatedRows, stats: { added, removed, total } };
-  }, [debouncedOriginal, debouncedModified, mode]);
+  }, [debouncedOriginal, debouncedModified, mode, ignoreWhitespace]);
 
   // Compute chunks of changes for navigation
   const diffChunks = useMemo(() => {
@@ -322,10 +404,25 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
              </>
            ) : (
              <>
-               <button onClick={handleClear} className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-hover-overlay rounded transition-colors" title="Clear All">
-                 <Trash2 size={16} />
-               </button>
+               <div className="flex items-center space-x-1 mr-2 bg-panel-bg rounded-md p-1 border border-border-base">
+                 <button
+                   onClick={() => setIgnoreWhitespace(!ignoreWhitespace)}
+                   className={`p-1.5 rounded transition-colors ${ignoreWhitespace ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+                   title="Ignore Whitespace"
+                 >
+                   <Space size={14} />
+                 </button>
+                 <button
+                   onClick={() => setShowInlineDiff(!showInlineDiff)}
+                   className={`p-1.5 rounded transition-colors ${showInlineDiff ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+                   title="Inline Highlighting"
+                 >
+                   <ScanText size={14} />
+                 </button>
+               </div>
+
                <div className="w-px h-4 bg-border-base mx-2" />
+               
                <button 
                 onClick={() => setMode('edit')} 
                 className="flex items-center space-x-2 px-3 py-1.5 bg-element-bg border border-border-base text-text-primary rounded-md text-xs font-medium hover:bg-hover-overlay shadow-sm"
@@ -439,6 +536,14 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
                 <div className="flex flex-col min-w-fit font-mono text-xs pb-8">
                    {rows.map((row, idx) => {
                      const isSelected = currentChunkIndex !== -1 && idx >= diffChunks[currentChunkIndex].start && idx <= diffChunks[currentChunkIndex].end;
+                     const isModifiedLine = row.left?.type === 'removed' && row.right?.type === 'added';
+                     
+                     // Calculate inline diffs if enabled and applicable
+                     let inlineDiffs: DiffPart[] | null = null;
+                     if (showInlineDiff && isModifiedLine && row.left && row.right) {
+                        inlineDiffs = computeInlineDiff(row.left.content, row.right.content);
+                     }
+
                      return (
                        <div 
                          key={idx} 
@@ -461,7 +566,11 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
                              <div className={`flex-1 pl-2 pr-2 py-1 whitespace-pre-wrap break-all ${
                                row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
                              }`}>
-                               {row.left?.content}
+                               {inlineDiffs ? (
+                                  <InlineDiffRenderer parts={inlineDiffs} displayType="left" />
+                               ) : (
+                                  row.left?.content
+                               )}
                              </div>
                           </div>
 
@@ -475,7 +584,11 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
                              <div className={`flex-1 pl-2 pr-2 py-1 whitespace-pre-wrap break-all ${
                                row.right?.type === 'added' ? 'text-text-primary' : 'text-text-secondary'
                              }`}>
-                               {row.right?.content}
+                               {inlineDiffs ? (
+                                  <InlineDiffRenderer parts={inlineDiffs} displayType="right" />
+                               ) : (
+                                  row.right?.content
+                               )}
                              </div>
                           </div>
 
