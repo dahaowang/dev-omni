@@ -18,6 +18,7 @@ import { TextJoinerTool } from './components/tools/TextJoinerTool';
 import { ImageBase64Tool } from './components/tools/ImageBase64Tool';
 import { UuidTool } from './components/tools/UuidTool';
 import { RegexTesterTool } from './components/tools/RegexTesterTool';
+import { CronTool } from './components/tools/CronTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -40,7 +41,8 @@ const TOOL_LABELS: Record<string, string> = {
   'text-joiner': 'Text Joiner',
   'image-base64': 'Image <> Base64',
   uuid: 'UUID Generator',
-  regex: 'Regex Tester'
+  regex: 'Regex Tester',
+  cron: 'Cron Expression'
 };
 
 // --- Main App Layout ---
@@ -114,26 +116,30 @@ const App: React.FC = () => {
         return <UuidTool {...commonProps} />;
       case 'regex':
         return <RegexTesterTool {...commonProps} />;
+      case 'cron':
+        return <CronTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
   };
 
   return (
-    <div className="flex flex-row h-screen w-full bg-app-bg text-text-primary font-sans overflow-hidden selection:bg-accent/30">
-      <Sidebar 
-        activeTool={activeTool} 
-        setActiveTool={setActiveTool} 
-        isOpen={isSidebarOpen}
-        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        onSettingsClick={() => setIsSettingsOpen(true)}
-        favorites={favorites}
-        onToggleFavorite={toggleFavorite}
-      />
-      
-      {/* Tool Container with Animation Key */}
-      <div key={activeTool} className="flex-1 flex flex-col h-full animate-slide-up-fade overflow-hidden">
-        {renderTool()}
+    <div className="flex-1 flex flex-col h-screen w-full bg-app-bg text-text-primary font-sans overflow-hidden selection:bg-accent/30">
+      <div className="flex flex-row h-full">
+        <Sidebar 
+          activeTool={activeTool} 
+          setActiveTool={setActiveTool} 
+          isOpen={isSidebarOpen}
+          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+        />
+        
+        {/* Tool Container with Animation Key */}
+        <div key={activeTool} className="flex-1 flex flex-col h-full animate-slide-up-fade overflow-hidden">
+          {renderTool()}
+        </div>
       </div>
       
       <SettingsModal 
