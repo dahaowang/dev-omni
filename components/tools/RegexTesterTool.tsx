@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   PanelLeft, 
   AlertCircle, 
   CheckCircle2, 
   Trash2,
   BookTemplate,
-  ChevronDown
+  ChevronDown,
+  Check
 } from 'lucide-react';
 
 interface RegexTesterToolProps {
@@ -31,12 +32,35 @@ const PRESETS = [
   { name: 'Slug', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', flags: '' },
 ];
 
+const FLAG_OPTIONS = [
+  { char: 'g', label: '全局搜索 (Global)', desc: '查找所有匹配项，而非首个' },
+  { char: 'i', label: '忽略大小写 (Insensitive)', desc: '匹配时不区分大小写' },
+  { char: 'm', label: '多行模式 (Multiline)', desc: '^ 和 $ 匹配行首行尾' },
+  { char: 's', label: '点号匹配换行 (DotAll)', desc: '. 匹配包括换行符的所有字符' },
+];
+
 export const RegexTesterTool: React.FC<RegexTesterToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [pattern, setPattern] = useState('');
   const [flags, setFlags] = useState('gm');
   const [testText, setTestText] = useState('Hello world! contact@example.com is my email.\nCall me at +1-555-0123 today.');
   const [regexError, setRegexError] = useState<string | null>(null);
   const [matches, setMatches] = useState<MatchResult[]>([]);
+  
+  const [isFlagsOpen, setIsFlagsOpen] = useState(false);
+  const flagsRef = useRef<HTMLDivElement>(null);
+
+  // Close flags dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (flagsRef.current && !flagsRef.current.contains(event.target as Node)) {
+        setIsFlagsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Apply Regex
   useEffect(() => {
@@ -180,30 +204,47 @@ export const RegexTesterTool: React.FC<RegexTesterToolProps> = ({ isSidebarOpen,
                  </div>
               </div>
 
-              {/* Flags Selector */}
-              <div className="flex flex-col gap-1.5 shrink-0">
+              {/* Flags Dropdown */}
+              <div className="flex flex-col gap-1.5 shrink-0 relative" ref={flagsRef}>
                  <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Flags</label>
-                 <div className="flex gap-1 h-[42px] items-center">
-                    {[
-                      { char: 'g', label: 'Global' },
-                      { char: 'i', label: 'Insensitive' },
-                      { char: 'm', label: 'Multiline' },
-                      { char: 's', label: 'DotAll' }
-                    ].map(flag => (
-                      <button
-                        key={flag.char}
-                        onClick={() => handleFlagToggle(flag.char)}
-                        className={`px-3 h-full rounded-md border text-sm font-mono font-medium transition-all ${
-                          flags.includes(flag.char)
-                            ? 'bg-accent/10 border-accent text-accent'
-                            : 'bg-element-bg border-border-base text-text-secondary hover:text-text-primary hover:border-border-hover'
-                        }`}
-                        title={flag.label}
-                      >
-                        {flag.char}
-                      </button>
-                    ))}
-                 </div>
+                 
+                 <button
+                    onClick={() => setIsFlagsOpen(!isFlagsOpen)}
+                    className={`h-[42px] px-3 flex items-center gap-2 bg-input-bg border rounded-md transition-colors min-w-[100px] justify-between ${
+                        isFlagsOpen ? 'border-accent ring-1 ring-accent/20' : 'border-border-base hover:border-accent/50'
+                    }`}
+                 >
+                    <span className="font-mono text-sm text-accent">{flags ? `/${flags}` : '/'}</span>
+                    <ChevronDown size={14} className={`text-text-secondary transition-transform duration-200 ${isFlagsOpen ? 'rotate-180' : ''}`} />
+                 </button>
+
+                 {isFlagsOpen && (
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-panel-bg border border-border-base rounded-lg shadow-xl z-20 overflow-hidden flex flex-col p-1 animate-fade-in">
+                        {FLAG_OPTIONS.map(opt => {
+                            const isSelected = flags.includes(opt.char);
+                            return (
+                                <button
+                                    key={opt.char}
+                                    onClick={() => handleFlagToggle(opt.char)}
+                                    className={`flex items-start gap-3 p-2 rounded-md hover:bg-hover-overlay transition-colors text-left group ${isSelected ? 'bg-accent/5' : ''}`}
+                                >
+                                    <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                        isSelected ? 'bg-accent border-accent' : 'border-text-secondary/50 bg-transparent group-hover:border-accent/50'
+                                    }`}>
+                                        {isSelected && <Check size={10} className="text-app-bg stroke-[3]" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <span className="font-mono font-bold text-accent text-xs bg-accent/10 px-1 rounded">-{opt.char}</span>
+                                            <span className={`text-xs font-medium ${isSelected ? 'text-text-primary' : 'text-text-secondary'}`}>{opt.label}</span>
+                                        </div>
+                                        <div className="text-[10px] text-text-secondary/70 leading-tight">{opt.desc}</div>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                 )}
               </div>
            </div>
            {regexError && (
