@@ -17,6 +17,7 @@ import { QrCodeTool } from './components/tools/QrCodeTool';
 import { TextJoinerTool } from './components/tools/TextJoinerTool';
 import { ImageBase64Tool } from './components/tools/ImageBase64Tool';
 import { UuidTool } from './components/tools/UuidTool';
+import { RegexTesterTool } from './components/tools/RegexTesterTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -38,7 +39,8 @@ const TOOL_LABELS: Record<string, string> = {
   qrcode: 'QR Code Tool',
   'text-joiner': 'Text Joiner',
   'image-base64': 'Image <> Base64',
-  uuid: 'UUID Generator'
+  uuid: 'UUID Generator',
+  regex: 'Regex Tester'
 };
 
 // --- Main App Layout ---
@@ -110,6 +112,8 @@ const App: React.FC = () => {
         return <ImageBase64Tool {...commonProps} />;
       case 'uuid':
         return <UuidTool {...commonProps} />;
+      case 'regex':
+        return <RegexTesterTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }

@@ -20,7 +20,8 @@ import {
   QrCode,
   ArrowDownUp,
   FileImage,
-  Fingerprint
+  Fingerprint,
+  Regex
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -61,6 +62,7 @@ const TOOLS: ToolConfig[] = [
   { id: 'hash', label: 'Hash/MD5', icon: <Hash size={16} />, category: 'generators', keywords: ['hash', 'md5', 'sha'] },
   
   // Text
+  { id: 'regex', label: 'Regex Tester', icon: <Regex size={16} />, category: 'text', keywords: ['regex', 'regexp', 'match', 'pattern'] },
   { id: 'text-joiner', label: 'Join / Split', icon: <ArrowDownUp size={16} />, category: 'text', keywords: ['join', 'split', 'csv', 'list', 'line'] },
   { id: 'diff', label: 'Diff', icon: <Scissors size={16} />, category: 'text', keywords: ['diff', 'compare'] },
   { id: 'dedupe', label: 'Dedupe', icon: <Files size={16} />, category: 'text', keywords: ['dedupe', 'unique', 'list'] },
