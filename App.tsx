@@ -19,6 +19,7 @@ import { ImageBase64Tool } from './components/tools/ImageBase64Tool';
 import { UuidTool } from './components/tools/UuidTool';
 import { RegexTesterTool } from './components/tools/RegexTesterTool';
 import { CronTool } from './components/tools/CronTool';
+import { CaseConverterTool } from './components/tools/CaseConverterTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -42,7 +43,8 @@ const TOOL_LABELS: Record<string, string> = {
   'image-base64': 'Image <> Base64',
   uuid: 'UUID Generator',
   regex: 'Regex Tester',
-  cron: 'Cron Expression'
+  cron: 'Cron Expression',
+  'case-converter': 'Case Converter'
 };
 
 // --- Main App Layout ---
@@ -118,6 +120,8 @@ const App: React.FC = () => {
         return <RegexTesterTool {...commonProps} />;
       case 'cron':
         return <CronTool {...commonProps} />;
+      case 'case-converter':
+        return <CaseConverterTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }

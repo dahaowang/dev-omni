@@ -22,7 +22,8 @@ import {
   FileImage,
   Fingerprint,
   Regex,
-  CalendarClock
+  CalendarClock,
+  CaseSensitive
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -64,6 +65,7 @@ const TOOLS: ToolConfig[] = [
   { id: 'hash', label: 'Hash/MD5', icon: <Hash size={16} />, category: 'generators', keywords: ['hash', 'md5', 'sha'] },
   
   // Text
+  { id: 'case-converter', label: 'Case Converter', icon: <CaseSensitive size={16} />, category: 'text', keywords: ['case', 'camel', 'snake', 'pascal', 'kebab'] },
   { id: 'regex', label: 'Regex Tester', icon: <Regex size={16} />, category: 'text', keywords: ['regex', 'regexp', 'match', 'pattern'] },
   { id: 'text-joiner', label: 'Join / Split', icon: <ArrowDownUp size={16} />, category: 'text', keywords: ['join', 'split', 'csv', 'list', 'line'] },
   { id: 'diff', label: 'Diff', icon: <Scissors size={16} />, category: 'text', keywords: ['diff', 'compare'] },
