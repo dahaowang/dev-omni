@@ -6,9 +6,11 @@ import {
   CheckCircle2, 
   FileJson, 
   FileCode,
-  ArrowRight
+  ArrowRight,
+  ArrowRightLeft
 } from 'lucide-react';
-import { ActionButton } from '../common/ActionButton';
+// @ts-ignore
+import { load, dump } from 'js-yaml';
 
 interface JsonToYamlToolProps {
   isSidebarOpen: boolean;
@@ -16,64 +18,10 @@ interface JsonToYamlToolProps {
   toolLabel: string;
 }
 
-// --- YAML Conversion Logic ---
-
-const toYAML = (data: any, indentLevel = 0): string => {
-  const indent = '  '.repeat(indentLevel);
-  
-  if (data === null) return 'null';
-  if (data === undefined) return '';
-  
-  // Primitives
-  if (typeof data !== 'object') {
-    return JSON.stringify(data);
-  }
-
-  // Arrays
-  if (Array.isArray(data)) {
-    if (data.length === 0) return '[]';
-    return data.map(item => {
-      if (typeof item === 'object' && item !== null) {
-        // Recursive call for object in array
-        // We trim start to align the first key with the dash
-        const itemYaml = toYAML(item, indentLevel + 1);
-        return `${indent}- ${itemYaml.trimStart()}`; 
-      } else {
-        return `${indent}- ${toYAML(item, 0)}`; // 0 indent because it follows the dash immediately
-      }
-    }).join('\n');
-  }
-
-  // Objects
-  const keys = Object.keys(data);
-  if (keys.length === 0) return '{}';
-  
-  return keys.map(key => {
-    const value = data[key];
-    const valueType = typeof value;
-    
-    // Simple key handling (quote if contains special chars - simplified check)
-    const formattedKey = /^[a-zA-Z0-9_]+$/.test(key) ? key : JSON.stringify(key);
-    
-    if (value === null) {
-       return `${indent}${formattedKey}: null`;
-    }
-    
-    if (Array.isArray(value)) {
-      if (value.length === 0) return `${indent}${formattedKey}: []`;
-      return `${indent}${formattedKey}:\n${toYAML(value, indentLevel)}`; // Array handles its own indentation
-    }
-    
-    if (valueType === 'object') {
-      if (Object.keys(value).length === 0) return `${indent}${formattedKey}: {}`;
-      return `${indent}${formattedKey}:\n${toYAML(value, indentLevel + 1)}`;
-    }
-    
-    return `${indent}${formattedKey}: ${toYAML(value, 0)}`;
-  }).join('\n');
-};
+type Mode = 'json2yaml' | 'yaml2json';
 
 export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+  const [mode, setMode] = useState<Mode>('json2yaml');
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -87,16 +35,22 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
     }
 
     try {
-      const parsed = JSON.parse(input);
-      const yaml = toYAML(parsed);
-      setOutput(yaml);
+      if (mode === 'json2yaml') {
+        // JSON -> YAML
+        const parsed = JSON.parse(input);
+        const yaml = dump(parsed, { indent: 2, lineWidth: -1 });
+        setOutput(yaml);
+      } else {
+        // YAML -> JSON
+        const parsed = load(input);
+        const json = JSON.stringify(parsed, null, 2);
+        setOutput(json);
+      }
       setError(null);
     } catch (err) {
-      // Don't clear output immediately on typing error to prevent flashing, 
-      // but do show error state.
       setError((err as Error).message);
     }
-  }, [input]);
+  }, [input, mode]);
 
   const handleCopy = () => {
     if (!output) return;
@@ -107,6 +61,13 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
 
   const handleClear = () => {
     setInput('');
+    setOutput('');
+    setError(null);
+  };
+
+  const toggleMode = () => {
+    setMode(prev => prev === 'json2yaml' ? 'yaml2json' : 'json2yaml');
+    setInput(output); // Optional: Swap content
     setOutput('');
     setError(null);
   };
@@ -132,17 +93,53 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
             <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
           </div>
         </div>
+
+        {/* Toolbar */}
+        <div className="flex items-center space-x-3 electron-no-drag">
+           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
+             <button
+               onClick={() => setMode('json2yaml')}
+               className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${
+                 mode === 'json2yaml'
+                   ? 'bg-element-bg text-text-primary shadow-sm' 
+                   : 'text-text-secondary hover:text-text-primary'
+               }`}
+             >
+               JSON → YAML
+             </button>
+             <button
+               onClick={() => setMode('yaml2json')}
+               className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${
+                 mode === 'yaml2json'
+                   ? 'bg-element-bg text-text-primary shadow-sm' 
+                   : 'text-text-secondary hover:text-text-primary'
+               }`}
+             >
+               YAML → JSON
+             </button>
+           </div>
+           
+           <div className="w-px h-4 bg-border-base mx-1" />
+
+           <button 
+              onClick={toggleMode}
+              className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded transition-colors"
+              title="Switch Mode"
+           >
+              <ArrowRightLeft size={16} />
+           </button>
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* Input Pane (JSON) */}
+        {/* Input Pane */}
         <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-0">
           <div className="flex items-center justify-between mb-2 pl-1 pr-4">
              <div className="flex items-center space-x-2 text-text-secondary">
-                <FileJson size={14} />
-                <span className="text-sm font-medium">JSON Input</span>
+                {mode === 'json2yaml' ? <FileJson size={14} /> : <FileCode size={14} />}
+                <span className="text-sm font-medium">{mode === 'json2yaml' ? 'JSON Input' : 'YAML Input'}</span>
              </div>
              <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
                <Trash2 size={12} /> Clear
@@ -156,7 +153,7 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
-              placeholder='Paste JSON here...'
+              placeholder={mode === 'json2yaml' ? 'Paste JSON here...' : 'Paste YAML here...'}
             />
           </div>
           {error && <div className="text-xs text-red-400 mt-2 ml-1 truncate">{error}</div>}
@@ -167,11 +164,11 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
            <ArrowRight size={24} />
         </div>
 
-        {/* Output Pane (YAML) */}
+        {/* Output Pane */}
         <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-0">
           <div className="flex items-center space-x-2 text-text-secondary mb-2 pl-1">
-             <FileCode size={14} />
-             <span className="text-sm font-medium">YAML Output</span>
+             {mode === 'json2yaml' ? <FileCode size={14} /> : <FileJson size={14} />}
+             <span className="text-sm font-medium">{mode === 'json2yaml' ? 'YAML Output' : 'JSON Output'}</span>
           </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
             <textarea
@@ -179,7 +176,7 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
               spellCheck={false}
               value={output}
               className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-accent placeholder-text-secondary"
-              placeholder='YAML result...'
+              placeholder={mode === 'json2yaml' ? 'YAML result...' : 'JSON result...'}
             />
             
             {/* Copy Button */}
