@@ -12,6 +12,7 @@ interface TimestampToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  initialValue?: string;
 }
 
 interface FormatRow {
@@ -20,7 +21,7 @@ interface FormatRow {
   desc?: string;
 }
 
-export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
   const [mode, setMode] = useState<'live' | 'manual'>('live');
   const [date, setDate] = useState<Date>(new Date());
   const [input, setInput] = useState<string>('');
@@ -46,6 +47,14 @@ export const TimestampTool: React.FC<TimestampToolProps> = ({ isSidebarOpen, tog
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [mode]);
+
+  // Handle Initial Smart Paste Value
+  useEffect(() => {
+    if (initialValue) {
+      setMode('manual');
+      setInput(initialValue);
+    }
+  }, [initialValue]);
 
   // Handle Manual Input Parsing
   useEffect(() => {

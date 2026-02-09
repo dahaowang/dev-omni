@@ -25,6 +25,7 @@ interface JsonFormatterProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  initialValue?: string;
 }
 
 interface JsonNodeProps {
@@ -232,7 +233,7 @@ const runLint = (json: any): string[] => {
 
 // --- Main Component ---
 
-export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [parsedData, setParsedData] = useState<any>(null);
@@ -252,31 +253,24 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   const [lintWarnings, setLintWarnings] = useState<string[]>([]);
 
   useEffect(() => {
-    const placeholder = JSON.stringify({
-      name: "DevOmni",
-      type: "Application",
-      active: true,
-      features: ["JSON Format", "Tree View", "Converters"],
-      meta: {
-        version: "1.0.0",
-        author: {
-           name: "Engineer",
-           role: "Senior Frontend"
-        },
-        stats: {
-           downloads: 1200,
-           rating: 4.8
-        }
-      },
-      configs: [
-        { id: 1, setting: "Dark Mode" },
-        { id: 2, setting: "Auto Save" }
-      ]
-    }, null, 4);
-    setInput(placeholder);
-    handleFormat(placeholder);
+    // If smart paste value provided, use it
+    if (initialValue) {
+      setInput(initialValue);
+      handleFormat(initialValue);
+    } else {
+      // Default placeholder
+      const placeholder = JSON.stringify({
+        name: "DevOmni",
+        type: "Application",
+        active: true,
+        features: ["JSON Format", "Tree View", "Converters"],
+        meta: { version: "1.0.0" }
+      }, null, 4);
+      setInput(placeholder);
+      handleFormat(placeholder);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialValue]); // Re-run if initialValue changes
 
   const updateStats = (text: string) => {
     setStats({
@@ -306,6 +300,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   };
 
   const handleFormat = (textToFormat: string = input) => {
+    updateStats(textToFormat);
     try {
       const parsed = JSON.parse(textToFormat);
       const formatted = JSON.stringify(parsed, null, 2);

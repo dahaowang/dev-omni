@@ -5,6 +5,7 @@ interface JwtToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  initialValue?: string;
 }
 
 // Color coding constants
@@ -30,12 +31,18 @@ const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
 };
 
-export const JwtTool: React.FC<JwtToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const JwtTool: React.FC<JwtToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
   const [input, setInput] = useState('');
   const [header, setHeader] = useState<any>(null);
   const [payload, setPayload] = useState<any>(null);
   const [signature, setSignature] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialValue) {
+      setInput(initialValue);
+    }
+  }, [initialValue]);
 
   useEffect(() => {
     if (!input.trim()) {

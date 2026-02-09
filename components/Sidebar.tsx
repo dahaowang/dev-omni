@@ -24,7 +24,8 @@ import {
   Regex,
   CalendarClock,
   CaseSensitive,
-  ShieldCheck
+  ShieldCheck,
+  Wand2 // Import Magic Wand
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -36,6 +37,7 @@ interface SidebarProps {
   onSettingsClick: () => void;
   favorites: ToolType[];
   onToggleFavorite: (toolId: ToolType) => void;
+  onSmartPaste: () => void; // New prop
 }
 
 interface ToolConfig {
@@ -74,7 +76,7 @@ const TOOLS: ToolConfig[] = [
   { id: 'dedupe', label: 'Dedupe', icon: <Files size={16} />, category: 'text', keywords: ['dedupe', 'unique', 'list'] },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isOpen, toggleSidebar, onSettingsClick, favorites, onToggleFavorite }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isOpen, toggleSidebar, onSettingsClick, favorites, onToggleFavorite, onSmartPaste }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     favorites: true,
@@ -185,6 +187,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, setActiveTool, isO
             className="w-full bg-input-bg border border-border-base text-xs text-text-primary rounded-md pl-8 pr-2 py-1.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-all placeholder-text-secondary shadow-sm"
           />
         </div>
+        
+        {/* Smart Paste Button */}
+        <button
+          onClick={onSmartPaste}
+          className="electron-no-drag w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-indigo-500/20 text-accent py-1.5 rounded-md text-xs font-medium transition-all group"
+          title="Smart Paste from Clipboard"
+        >
+          <Wand2 size={13} className="group-hover:rotate-12 transition-transform" />
+          Smart Paste
+        </button>
       </div>
 
       {/* Navigation */}

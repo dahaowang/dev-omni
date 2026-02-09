@@ -23,6 +23,8 @@ import { CaseConverterTool } from './components/tools/CaseConverterTool';
 import { JwtTool } from './components/tools/JwtTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
+import { analyzeClipboard } from './utils/clipboardDetection';
+import { Wand2 } from 'lucide-react';
 
 // --- Configuration ---
 
@@ -49,12 +51,30 @@ const TOOL_LABELS: Record<string, string> = {
   jwt: 'JWT Debugger'
 };
 
+// --- Toast Component ---
+const Toast: React.FC<{ message: string, onClose: () => void }> = ({ message, onClose }) => (
+  <div className="fixed bottom-6 right-6 z-50 bg-panel-bg border border-accent/20 shadow-lg rounded-lg p-3 flex items-center gap-3 animate-fade-in pr-8">
+     <div className="bg-accent/10 p-1.5 rounded-full text-accent">
+       <Wand2 size={16} />
+     </div>
+     <span className="text-sm font-medium text-text-primary">{message}</span>
+     <button onClick={onClose} className="absolute top-2 right-2 text-text-secondary hover:text-text-primary">
+       <span className="sr-only">Close</span>
+       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+     </button>
+  </div>
+);
+
 // --- Main App Layout ---
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ToolType>('json');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Smart Paste State
+  const [smartPasteData, setSmartPasteData] = useState<{ tool: ToolType, content: string } | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   // Favorites State with Persistence
   const [favorites, setFavorites] = useState<ToolType[]>(() => {
@@ -70,6 +90,28 @@ const App: React.FC = () => {
     localStorage.setItem('devomni-favorites', JSON.stringify(favorites));
   }, [favorites]);
 
+  // Initial Smart Paste Check on Mount
+  useEffect(() => {
+    handleSmartPaste();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSmartPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const result = analyzeClipboard(text);
+      if (result) {
+        // Only switch if different or same tool but needs content refresh
+        setActiveTool(result.tool);
+        setSmartPasteData({ tool: result.tool, content: result.content });
+        setToastMessage(`Detected ${result.label} - Auto Switched`);
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    } catch (err) {
+      console.warn('Clipboard access denied or empty', err);
+    }
+  };
+
   const toggleFavorite = (toolId: ToolType) => {
     setFavorites(prev => 
       prev.includes(toolId) 
@@ -79,10 +121,16 @@ const App: React.FC = () => {
   };
 
   const renderTool = () => {
+    // Only pass initialValue if the current active tool matches the smart paste detected tool
+    // AND we haven't 'consumed' it yet (though React key update handles reset usually, 
+    // passing it as a prop that triggers useEffect in child is safer)
+    const initialValue = (smartPasteData && smartPasteData.tool === activeTool) ? smartPasteData.content : undefined;
+
     const commonProps = {
       isSidebarOpen,
       toggleSidebar: () => setIsSidebarOpen(!isSidebarOpen),
-      toolLabel: TOOL_LABELS[activeTool] || activeTool
+      toolLabel: TOOL_LABELS[activeTool] || activeTool,
+      initialValue // Pass this to all tools, they can choose to use it
     };
 
     switch (activeTool) {
@@ -132,7 +180,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-screen w-full bg-app-bg text-text-primary font-sans overflow-hidden selection:bg-accent/30">
+    <div className="flex-1 flex flex-col h-screen w-full bg-app-bg text-text-primary font-sans overflow-hidden selection:bg-accent/30 relative">
       <div className="flex flex-row h-full">
         <Sidebar 
           activeTool={activeTool} 
@@ -142,10 +190,12 @@ const App: React.FC = () => {
           onSettingsClick={() => setIsSettingsOpen(true)}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
+          onSmartPaste={handleSmartPaste}
         />
         
         {/* Tool Container with Animation Key */}
-        <div key={activeTool} className="flex-1 flex flex-col h-full animate-slide-up-fade overflow-hidden">
+        {/* We add smartPasteData to key to force re-render if same tool is auto-selected with new data */}
+        <div key={`${activeTool}-${smartPasteData?.content?.substring(0, 10)}`} className="flex-1 flex flex-col h-full animate-slide-up-fade overflow-hidden">
           {renderTool()}
         </div>
       </div>
@@ -154,6 +204,8 @@ const App: React.FC = () => {
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
       />
+
+      {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
     </div>
   );
 };
