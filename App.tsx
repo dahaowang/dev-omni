@@ -20,6 +20,7 @@ import { UuidTool } from './components/tools/UuidTool';
 import { RegexTesterTool } from './components/tools/RegexTesterTool';
 import { CronTool } from './components/tools/CronTool';
 import { CaseConverterTool } from './components/tools/CaseConverterTool';
+import { JwtTool } from './components/tools/JwtTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -44,7 +45,8 @@ const TOOL_LABELS: Record<string, string> = {
   uuid: 'UUID Generator',
   regex: 'Regex Tester',
   cron: 'Cron Expression',
-  'case-converter': 'Case Converter'
+  'case-converter': 'Case Converter',
+  jwt: 'JWT Debugger'
 };
 
 // --- Main App Layout ---
@@ -122,6 +124,8 @@ const App: React.FC = () => {
         return <CronTool {...commonProps} />;
       case 'case-converter':
         return <CaseConverterTool {...commonProps} />;
+      case 'jwt':
+        return <JwtTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }

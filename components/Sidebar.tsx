@@ -23,7 +23,8 @@ import {
   Fingerprint,
   Regex,
   CalendarClock,
-  CaseSensitive
+  CaseSensitive,
+  ShieldCheck
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -48,6 +49,7 @@ interface ToolConfig {
 const TOOLS: ToolConfig[] = [
   // Converters
   { id: 'json', label: 'JSON Format', icon: <Braces size={16} />, category: 'converters', keywords: ['json', 'format', 'lint'] },
+  { id: 'jwt', label: 'JWT Debugger', icon: <ShieldCheck size={16} />, category: 'converters', keywords: ['jwt', 'token', 'decode', 'security'] },
   { id: 'yaml', label: 'JSON <> YAML', icon: <FileCode size={16} />, category: 'converters', keywords: ['yaml', 'convert'] },
   { id: 'sql', label: 'SQL Format', icon: <Database size={16} />, category: 'converters', keywords: ['sql', 'format', 'query'] },
   { id: 'number', label: 'Number Base', icon: <Calculator size={16} />, category: 'converters', keywords: ['hex', 'binary', 'decimal'] },
