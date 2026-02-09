@@ -19,7 +19,8 @@ import {
   ChevronDown,
   QrCode,
   ArrowDownUp,
-  FileImage
+  FileImage,
+  Fingerprint
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -52,6 +53,7 @@ const TOOLS: ToolConfig[] = [
   { id: 'base64', label: 'Base64 Text', icon: <Binary size={16} />, category: 'converters', keywords: ['base64', 'encode', 'decode', 'text'] },
   
   // Generators
+  { id: 'uuid', label: 'UUID Generator', icon: <Fingerprint size={16} />, category: 'generators', keywords: ['uuid', 'guid', 'id', 'unique'] },
   { id: 'qrcode', label: 'QR Code', icon: <QrCode size={16} />, category: 'generators', keywords: ['qr', 'barcode', 'scan', 'read'] },
   { id: 'timestamp', label: 'Timestamp', icon: <Clock size={16} />, category: 'generators', keywords: ['time', 'date', 'epoch'] },
   { id: 'color', label: 'Color Picker', icon: <Palette size={16} />, category: 'generators', keywords: ['color', 'hex', 'rgb'] },

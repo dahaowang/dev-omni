@@ -16,6 +16,7 @@ import { RandomStringTool } from './components/tools/RandomStringTool';
 import { QrCodeTool } from './components/tools/QrCodeTool';
 import { TextJoinerTool } from './components/tools/TextJoinerTool';
 import { ImageBase64Tool } from './components/tools/ImageBase64Tool';
+import { UuidTool } from './components/tools/UuidTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 
@@ -36,7 +37,8 @@ const TOOL_LABELS: Record<string, string> = {
   dedupe: 'Dedupe Lines',
   qrcode: 'QR Code Tool',
   'text-joiner': 'Text Joiner',
-  'image-base64': 'Image <> Base64'
+  'image-base64': 'Image <> Base64',
+  uuid: 'UUID Generator'
 };
 
 // --- Main App Layout ---
@@ -106,6 +108,8 @@ const App: React.FC = () => {
         return <TextJoinerTool {...commonProps} />;
       case 'image-base64':
         return <ImageBase64Tool {...commonProps} />;
+      case 'uuid':
+        return <UuidTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }
