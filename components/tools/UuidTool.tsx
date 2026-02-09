@@ -5,7 +5,9 @@ import {
   RefreshCw, 
   CheckCircle2, 
   Settings2,
-  Fingerprint
+  Fingerprint,
+  Minus,
+  Plus
 } from 'lucide-react';
 
 interface UuidToolProps {
@@ -15,7 +17,7 @@ interface UuidToolProps {
 }
 
 export const UuidTool: React.FC<UuidToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
-  const [quantity, setQuantity] = useState<number>(1);
+  const [quantity, setQuantity] = useState<number>(5);
   const [hyphens, setHyphens] = useState(true);
   const [uppercase, setUppercase] = useState(false);
   const [braces, setBraces] = useState(false);
@@ -42,7 +44,7 @@ export const UuidTool: React.FC<UuidToolProps> = ({ isSidebarOpen, toggleSidebar
 
   const generateUUIDs = () => {
     // Basic validation for quantity
-    const count = Math.max(1, Math.min(1000, quantity));
+    const count = Math.max(1, Math.min(2000, quantity));
     
     let result = [];
     for (let i = 0; i < count; i++) {
@@ -72,6 +74,10 @@ export const UuidTool: React.FC<UuidToolProps> = ({ isSidebarOpen, toggleSidebar
     setTimeout(() => setCopyFeedback(false), 2000);
   };
 
+  const adjustQuantity = (delta: number) => {
+    setQuantity(prev => Math.max(1, Math.min(2000, prev + delta)));
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
       {/* Header */}
@@ -95,116 +101,113 @@ export const UuidTool: React.FC<UuidToolProps> = ({ isSidebarOpen, toggleSidebar
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-6">
+      {/* Content Container (Non-scrolling wrapper to allow flex-1 children to scroll) */}
+      <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden">
+        <div className="max-w-6xl mx-auto w-full flex flex-col h-full gap-4">
           
-          {/* Configuration Panel */}
-          <div className="w-full md:w-80 flex flex-col gap-6 shrink-0">
-             <div className="bg-panel-bg border border-border-base rounded-lg p-5 shadow-sm">
-                <div className="flex items-center space-x-2 text-text-secondary mb-4 pb-2 border-b border-border-base">
+          {/* Top: Compact Configuration Panel */}
+          <div className="shrink-0 bg-panel-bg border border-border-base rounded-lg p-4 shadow-sm flex flex-col md:flex-row gap-6 md:items-center justify-between">
+             
+             {/* Quantity Control */}
+             <div className="flex-1 flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-2 text-text-secondary shrink-0">
                    <Settings2 size={16} />
-                   <span className="text-xs font-semibold uppercase tracking-wider">Configuration</span>
+                   <span className="text-xs font-bold uppercase tracking-wider">Quantity</span>
                 </div>
-
-                {/* Quantity */}
-                <div className="mb-6">
-                   <div className="flex justify-between items-center mb-2">
-                     <label className="text-sm font-medium text-text-primary">Quantity</label>
-                     <input 
+                
+                <div className="flex items-center gap-2 flex-1 max-w-sm">
+                   <button onClick={() => adjustQuantity(-1)} className="p-1 rounded hover:bg-element-bg text-text-secondary hover:text-text-primary transition-colors">
+                      <Minus size={14} />
+                   </button>
+                   <input 
+                       type="range" 
+                       min="1" 
+                       max="100" 
+                       value={Math.min(quantity, 100)} 
+                       onChange={(e) => setQuantity(parseInt(e.target.value))}
+                       className="flex-1 h-1.5 bg-element-bg rounded-lg appearance-none cursor-pointer accent-accent min-w-[100px]"
+                   />
+                   <button onClick={() => adjustQuantity(1)} className="p-1 rounded hover:bg-element-bg text-text-secondary hover:text-text-primary transition-colors">
+                      <Plus size={14} />
+                   </button>
+                   <input 
                        type="number" 
                        value={quantity}
-                       onChange={(e) => setQuantity(Math.max(1, Math.min(1000, parseInt(e.target.value) || 0)))}
-                       className="w-16 bg-input-bg border border-border-base rounded px-2 py-1 text-xs text-right focus:border-accent outline-none"
-                     />
-                   </div>
-                   <input 
-                     type="range" 
-                     min="1" 
-                     max="100" 
-                     value={Math.min(quantity, 100)} 
-                     onChange={(e) => setQuantity(parseInt(e.target.value))}
-                     className="w-full h-1.5 bg-element-bg rounded-lg appearance-none cursor-pointer accent-accent"
+                       onChange={(e) => setQuantity(Math.max(1, Math.min(2000, parseInt(e.target.value) || 0)))}
+                       className="w-16 bg-input-bg border border-border-base rounded px-2 py-1 text-sm text-center focus:border-accent outline-none font-mono"
                    />
                 </div>
+             </div>
 
-                {/* Format Options */}
-                <div className="space-y-3">
-                   <label className="flex items-center justify-between cursor-pointer group">
-                      <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">Hyphens</span>
-                      <input 
-                        type="checkbox" 
-                        checked={hyphens} 
-                        onChange={() => setHyphens(!hyphens)}
-                        className="w-4 h-4 rounded border-border-base bg-input-bg text-accent focus:ring-offset-0 focus:ring-0 cursor-pointer"
-                      />
-                   </label>
-                   <label className="flex items-center justify-between cursor-pointer group">
-                      <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">Uppercase</span>
-                      <input 
-                        type="checkbox" 
-                        checked={uppercase} 
-                        onChange={() => setUppercase(!uppercase)}
-                        className="w-4 h-4 rounded border-border-base bg-input-bg text-accent focus:ring-offset-0 focus:ring-0 cursor-pointer"
-                      />
-                   </label>
-                   <label className="flex items-center justify-between cursor-pointer group">
-                      <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">Braces {'{}'}</span>
-                      <input 
-                        type="checkbox" 
-                        checked={braces} 
-                        onChange={() => setBraces(!braces)}
-                        className="w-4 h-4 rounded border-border-base bg-input-bg text-accent focus:ring-offset-0 focus:ring-0 cursor-pointer"
-                      />
-                   </label>
-                </div>
+             <div className="w-px h-8 bg-border-base hidden md:block"></div>
+
+             {/* Toggles */}
+             <div className="flex items-center gap-6 shrink-0">
+                <label className="flex items-center gap-2 cursor-pointer group select-none">
+                   <input 
+                     type="checkbox" 
+                     checked={hyphens} 
+                     onChange={() => setHyphens(!hyphens)}
+                     className="w-4 h-4 rounded border-border-base bg-input-bg text-accent focus:ring-offset-0 focus:ring-0 cursor-pointer"
+                   />
+                   <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">Hyphens</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer group select-none">
+                   <input 
+                     type="checkbox" 
+                     checked={uppercase} 
+                     onChange={() => setUppercase(!uppercase)}
+                     className="w-4 h-4 rounded border-border-base bg-input-bg text-accent focus:ring-offset-0 focus:ring-0 cursor-pointer"
+                   />
+                   <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">Uppercase</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer group select-none">
+                   <input 
+                     type="checkbox" 
+                     checked={braces} 
+                     onChange={() => setBraces(!braces)}
+                     className="w-4 h-4 rounded border-border-base bg-input-bg text-accent focus:ring-offset-0 focus:ring-0 cursor-pointer"
+                   />
+                   <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">Braces {'{}'}</span>
+                </label>
              </div>
           </div>
 
-          {/* Output Panel */}
-          <div className="flex-1 flex flex-col gap-4">
-             <div className="bg-panel-bg border border-border-base rounded-lg p-6 flex flex-col h-full shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                   <div className="flex items-center space-x-2 text-text-secondary">
-                      <Fingerprint size={16} />
-                      <span className="text-xs font-semibold uppercase tracking-wider">Generated UUIDs</span>
-                   </div>
+          {/* Bottom: Maximized Output Panel */}
+          <div className="flex-1 min-h-0 bg-panel-bg border border-border-base rounded-lg flex flex-col shadow-sm">
+             {/* Toolbar */}
+             <div className="flex items-center justify-between p-3 border-b border-border-base bg-sidebar-bg/50 shrink-0">
+                <div className="flex items-center space-x-2 text-text-secondary px-2">
+                   <Fingerprint size={16} />
+                   <span className="text-xs font-semibold uppercase tracking-wider">Result List</span>
+                   <span className="text-xs opacity-50 font-mono">({output.split('\n').length} items)</span>
+                </div>
+                <div className="flex items-center gap-3">
                    <button 
                      onClick={generateUUIDs}
-                     className="flex items-center space-x-1.5 px-3 py-1.5 bg-accent/10 text-accent rounded-md hover:bg-accent/20 transition-colors text-xs font-medium"
+                     className="flex items-center space-x-1.5 px-3 py-1.5 bg-element-bg hover:bg-hover-overlay text-text-secondary hover:text-text-primary border border-border-base rounded-md transition-colors text-xs font-medium"
                    >
                      <RefreshCw size={14} />
                      <span>Regenerate</span>
                    </button>
-                </div>
-
-                <div className="flex-1 relative bg-app-bg rounded-md border border-border-base p-0 flex flex-col overflow-hidden group">
-                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      <button 
-                        onClick={handleCopy}
-                        className="p-2 text-text-secondary hover:text-text-primary hover:bg-element-bg rounded transition-colors bg-panel-bg/80 backdrop-blur-sm border border-border-base shadow-sm"
-                        title="Copy to clipboard"
-                      >
-                         {copyFeedback ? <CheckCircle2 size={18} className="text-green-500" /> : <Copy size={18} />}
-                      </button>
-                   </div>
-                   
-                   <textarea
-                     readOnly
-                     value={output}
-                     className="flex-1 w-full bg-transparent resize-none p-6 font-mono text-sm leading-relaxed text-text-primary focus:outline-none"
-                   />
-                </div>
-                
-                <div className="mt-4 flex justify-end">
                    <button 
                      onClick={handleCopy}
-                     className="w-full md:w-auto flex items-center justify-center space-x-2 px-6 py-2 bg-element-bg border border-border-base text-text-primary rounded-md hover:border-accent hover:text-accent transition-all shadow-sm active:scale-95"
+                     className="flex items-center space-x-1.5 px-4 py-1.5 bg-accent text-white rounded-md hover:bg-accent/90 transition-all shadow-sm active:scale-95 text-xs font-medium"
                    >
-                     {copyFeedback ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-                     <span className="font-medium">{copyFeedback ? 'Copied' : 'Copy List'}</span>
+                     {copyFeedback ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                     <span>{copyFeedback ? 'Copied' : 'Copy All'}</span>
                    </button>
                 </div>
+             </div>
+
+             {/* Text Area */}
+             <div className="flex-1 relative bg-app-bg group">
+                <textarea
+                  readOnly
+                  value={output}
+                  className="absolute inset-0 w-full h-full resize-none p-4 font-mono text-sm leading-relaxed text-text-primary focus:outline-none bg-transparent"
+                  spellCheck={false}
+                />
              </div>
           </div>
 
