@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ArrowRight, 
   Minimize2, 
@@ -9,15 +9,187 @@ import {
   AlertCircle,
   PanelLeft,
   AlertTriangle,
-  Check
+  Check,
+  ChevronRight,
+  ChevronDown,
+  Code2,
+  ListTree,
+  ChevronsDown,
+  ChevronsUp
 } from 'lucide-react';
 import { ActionButton } from '../common/ActionButton';
+
+// --- Types & Interfaces ---
 
 interface JsonFormatterProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
 }
+
+interface JsonNodeProps {
+  name?: string;
+  value: any;
+  isLast: boolean;
+  level: number;
+  expandDepth: number;
+  // Used to force re-sync with expandDepth when global controls are used
+  syncId: number; 
+}
+
+// --- Utils ---
+
+const getType = (value: any): string => {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  return typeof value;
+};
+
+// --- JSON Tree Components ---
+
+const JsonNode: React.FC<JsonNodeProps> = ({ name, value, isLast, level, expandDepth, syncId }) => {
+  const [expanded, setExpanded] = useState(level < expandDepth);
+  
+  // Sync expansion state when global controls (syncId) change
+  useEffect(() => {
+    setExpanded(level < expandDepth);
+  }, [expandDepth, level, syncId]);
+
+  const type = getType(value);
+  const isExpandable = type === 'object' || type === 'array';
+  const isEmpty = isExpandable && Object.keys(value).length === 0;
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpanded(!expanded);
+  };
+
+  const renderValue = () => {
+    if (type === 'string') return <span className="text-[#a5d6ff] break-all">"{value}"</span>; // Soft Blue
+    if (type === 'number') return <span className="text-[#ff9b5e]">{value}</span>; // Orange
+    if (type === 'boolean') return <span className="text-[#79c0ff] font-semibold">{value.toString()}</span>; // Blue
+    if (type === 'null') return <span className="text-gray-500 italic">null</span>;
+    return <span className="text-text-primary">{String(value)}</span>;
+  };
+
+  const renderObjectContent = () => {
+    const keys = Object.keys(value);
+    if (keys.length === 0) return null;
+
+    return keys.map((key, idx) => (
+      <JsonNode
+        key={key}
+        name={key}
+        value={value[key]}
+        isLast={idx === keys.length - 1}
+        level={level + 1}
+        expandDepth={expandDepth}
+        syncId={syncId}
+      />
+    ));
+  };
+
+  const renderArrayContent = () => {
+    if (value.length === 0) return null;
+
+    return value.map((item: any, idx: number) => (
+      <JsonNode
+        key={idx}
+        value={item}
+        isLast={idx === value.length - 1}
+        level={level + 1}
+        expandDepth={expandDepth}
+        syncId={syncId}
+      />
+    ));
+  };
+
+  const indentSize = 1.25; // rem
+
+  return (
+    <div className="font-mono text-sm leading-6">
+      <div 
+        className={`flex items-start hover:bg-hover-overlay rounded-sm transition-colors cursor-pointer select-text ${!isExpandable ? 'cursor-default' : ''}`}
+        style={{ paddingLeft: `${level * indentSize}rem` }}
+        onClick={isExpandable && !isEmpty ? handleToggle : undefined}
+      >
+        {/* Toggle Icon */}
+        <div className="w-5 h-6 flex items-center justify-center shrink-0 mr-1 text-text-secondary">
+          {isExpandable && !isEmpty && (
+            expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 break-words">
+          {name && <span className="text-[#d2a8ff] mr-2">{name}:</span>} {/* Purple for keys */}
+          
+          {!isExpandable ? (
+            <>
+              {renderValue()}
+              {!isLast && <span className="text-text-secondary">,</span>}
+            </>
+          ) : (
+            <>
+              <span className="text-text-secondary">{type === 'array' ? '[' : '{'}</span>
+              
+              {!expanded && !isEmpty && (
+                <button 
+                  onClick={handleToggle}
+                  className="mx-1 px-1.5 py-0.5 text-[10px] bg-element-bg rounded text-text-secondary hover:text-text-primary hover:bg-border-base transition-colors select-none"
+                >
+                  {type === 'array' ? `${value.length} items` : '...'}
+                </button>
+              )}
+
+              {isEmpty && <span className="text-text-secondary mx-1"></span>}
+
+              {(!expanded || isEmpty) && (
+                <>
+                  <span className="text-text-secondary">{type === 'array' ? ']' : '}'}</span>
+                  {!isLast && <span className="text-text-secondary">,</span>}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Children */}
+      {isExpandable && expanded && !isEmpty && (
+        <div>
+          {type === 'array' ? renderArrayContent() : renderObjectContent()}
+          <div 
+            className="hover:bg-hover-overlay rounded-sm transition-colors"
+            style={{ paddingLeft: `${level * indentSize}rem` }}
+          >
+             <div className="flex items-center">
+               <div className="w-5 h-6 mr-1" /> {/* Spacer for icon alignment */}
+               <span className="text-text-secondary">{type === 'array' ? ']' : '}'}</span>
+               {!isLast && <span className="text-text-secondary">,</span>}
+             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const JsonTree: React.FC<{ data: any, expandDepth: number, syncId: number }> = ({ data, expandDepth, syncId }) => {
+  return (
+    <div className="p-4 overflow-auto w-full h-full">
+      <JsonNode 
+        value={data} 
+        isLast={true} 
+        level={0} 
+        expandDepth={expandDepth} 
+        syncId={syncId}
+      />
+    </div>
+  );
+};
+
+// --- Lint Logic ---
 
 const runLint = (json: any): string[] => {
   const warnings: string[] = [];
@@ -30,13 +202,11 @@ const runLint = (json: any): string[] => {
 
     if (Array.isArray(obj)) {
       if (obj.length > 0) {
-        // Check for mixed types in array (heuristic: check first 20 items)
         const types = new Set(obj.slice(0, 20).map(item => item === null ? 'null' : typeof item));
         if (types.size > 1) {
           warnings.push(`Array at '${path || 'root'}' contains mixed types: ${Array.from(types).join(', ')}.`);
         }
       }
-      
       obj.forEach((item, index) => {
         if (typeof item === 'object' && item !== null) {
           traverse(item, `${path}[${index}]`, depth + 1);
@@ -47,13 +217,10 @@ const runLint = (json: any): string[] => {
       if (keys.length === 0) {
         warnings.push(`Empty object found at '${path || 'root'}'.`);
       }
-
       keys.forEach(key => {
-        // Naming convention check: Spaces or special chars (heuristic)
         if (/[^a-zA-Z0-9_]/.test(key)) {
            warnings.push(`Key '${key}' at '${path}' contains special characters. Recommended: camelCase or snake_case.`);
         }
-        
         traverse(obj[key], path ? `${path}.${key}` : key, depth + 1);
       });
     }
@@ -63,28 +230,48 @@ const runLint = (json: any): string[] => {
   return warnings;
 };
 
+// --- Main Component ---
+
 export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
+  const [parsedData, setParsedData] = useState<any>(null);
   const [isValid, setIsValid] = useState<boolean>(true);
   const [stats, setStats] = useState({ chars: 0, lines: 0 });
   const [copyFeedback, setCopyFeedback] = useState(false);
   
+  // View State
+  const [outputTab, setOutputTab] = useState<'output' | 'lint'>('output');
+  const [viewMode, setViewMode] = useState<'code' | 'tree'>('code');
+  
+  // Tree Control State
+  const [expandDepth, setExpandDepth] = useState<number>(2);
+  const [syncId, setSyncId] = useState<number>(0);
+  
   // Linting State
   const [lintWarnings, setLintWarnings] = useState<string[]>([]);
-  const [outputTab, setOutputTab] = useState<'output' | 'lint'>('output');
 
   useEffect(() => {
     const placeholder = JSON.stringify({
       name: "DevOmni",
       type: "Application",
-      features: ["JSON Format", "SQL Format", "Converters"],
+      active: true,
+      features: ["JSON Format", "Tree View", "Converters"],
       meta: {
         version: "1.0.0",
-        author: "AI Engineer",
-        "bad key example": "warning trigger"
+        author: {
+           name: "Engineer",
+           role: "Senior Frontend"
+        },
+        stats: {
+           downloads: 1200,
+           rating: 4.8
+        }
       },
-      emptyObj: {}
+      configs: [
+        { id: 1, setting: "Dark Mode" },
+        { id: 2, setting: "Auto Save" }
+      ]
     }, null, 4);
     setInput(placeholder);
     handleFormat(placeholder);
@@ -102,17 +289,19 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
     const newVal = e.target.value;
     setInput(newVal);
     updateStats(newVal);
-    // Basic validation on type
     try {
       if (newVal.trim() === '') {
         setIsValid(true);
+        setParsedData(null);
         setLintWarnings([]);
         return;
       }
-      JSON.parse(newVal);
+      const parsed = JSON.parse(newVal);
+      setParsedData(parsed);
       setIsValid(true);
     } catch (err) {
       setIsValid(false);
+      setParsedData(null);
     }
   };
 
@@ -121,16 +310,14 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       const parsed = JSON.parse(textToFormat);
       const formatted = JSON.stringify(parsed, null, 2);
       setOutput(formatted);
+      setParsedData(parsed);
       setIsValid(true);
-      
-      // Run Lint
-      const warnings = runLint(parsed);
-      setLintWarnings(warnings);
-      // Optional: Auto-switch to lint tab if many warnings? No, annoying.
+      setLintWarnings(runLint(parsed));
     } catch (error) {
       setOutput((error as Error).message);
       setIsValid(false);
       setLintWarnings([]);
+      setParsedData(null);
     }
   };
 
@@ -139,6 +326,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       const parsed = JSON.parse(input);
       const compacted = JSON.stringify(parsed);
       setOutput(compacted);
+      setParsedData(parsed);
       setIsValid(true);
       setLintWarnings(runLint(parsed));
     } catch (error) {
@@ -165,9 +353,26 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   const handleClear = () => {
     setInput('');
     setOutput('');
+    setParsedData(null);
     updateStats('');
     setIsValid(true);
     setLintWarnings([]);
+  };
+
+  // Tree Controls
+  const triggerExpandAll = () => {
+    setExpandDepth(100);
+    setSyncId(s => s + 1);
+  };
+
+  const triggerCollapseAll = () => {
+    setExpandDepth(0);
+    setSyncId(s => s + 1); // Depth 0 collapses root children technically, or we can use 1 for root expanded
+  };
+  
+  const triggerLevel = (lvl: number) => {
+    setExpandDepth(lvl);
+    setSyncId(s => s + 1);
   };
 
   return (
@@ -177,7 +382,6 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
         <div className="flex items-center">
           {!isSidebarOpen && (
             <>
-              {/* Traffic Light Spacer for macOS */}
               <div className="w-[70px] h-full shrink-0 electron-drag" />
               <button 
                 onClick={toggleSidebar} 
@@ -230,8 +434,10 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
            <ActionButton onClick={handleEscape} icon={<Maximize2 size={18} />} label="Escape" />
         </div>
 
-        {/* Output Pane with Tabs */}
+        {/* Output Pane */}
         <div className="flex-1 flex flex-col min-w-0 bg-app-bg pl-2">
+          
+          {/* Output Toolbar */}
           <div className="flex items-center justify-between mb-2">
              <div className="flex items-center space-x-4">
                 <button 
@@ -256,22 +462,77 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
                   )}
                 </button>
              </div>
+
+             {/* Tree/Code Toggle & Controls */}
+             {outputTab === 'output' && isValid && parsedData && (
+               <div className="flex items-center space-x-2 bg-panel-bg rounded-md p-0.5 border border-border-base">
+                 
+                 {viewMode === 'tree' && (
+                   <div className="flex items-center px-1 border-r border-border-base mr-1 gap-0.5">
+                     <button 
+                       onClick={triggerCollapseAll} 
+                       className="p-1 hover:bg-hover-overlay rounded text-text-secondary hover:text-text-primary"
+                       title="Collapse All"
+                     >
+                       <ChevronsUp size={14} />
+                     </button>
+                     <div className="flex text-[10px] font-mono text-text-secondary mx-1 gap-1">
+                        <button onClick={() => triggerLevel(1)} className="hover:text-accent">1</button>
+                        <button onClick={() => triggerLevel(2)} className="hover:text-accent">2</button>
+                        <button onClick={() => triggerLevel(3)} className="hover:text-accent">3</button>
+                     </div>
+                     <button 
+                       onClick={triggerExpandAll} 
+                       className="p-1 hover:bg-hover-overlay rounded text-text-secondary hover:text-text-primary"
+                       title="Expand All"
+                     >
+                       <ChevronsDown size={14} />
+                     </button>
+                   </div>
+                 )}
+
+                 <button
+                   onClick={() => setViewMode('code')}
+                   className={`p-1.5 rounded transition-all ${viewMode === 'code' ? 'bg-element-bg text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                   title="Code View"
+                 >
+                   <Code2 size={14} />
+                 </button>
+                 <button
+                   onClick={() => setViewMode('tree')}
+                   className={`p-1.5 rounded transition-all ${viewMode === 'tree' ? 'bg-element-bg text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                   title="Tree View"
+                 >
+                   <ListTree size={14} />
+                 </button>
+               </div>
+             )}
           </div>
           
-          <div className="flex-1 bg-panel-bg rounded-xl border border-border-base overflow-hidden relative group hover:border-accent/30 transition-colors shadow-[var(--shadow-card)]">
+          <div className="flex-1 bg-panel-bg rounded-xl border border-border-base overflow-hidden relative group hover:border-accent/30 transition-colors shadow-[var(--shadow-card)] flex flex-col">
+            
             {outputTab === 'output' ? (
               <>
-                <textarea
-                  readOnly
-                  spellCheck={false}
-                  value={output}
-                  className={`w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 ${isValid ? 'text-accent' : 'text-red-400'}`}
-                  placeholder='Result will appear here...'
-                />
+                {viewMode === 'code' || !isValid || !parsedData ? (
+                  <textarea
+                    readOnly
+                    spellCheck={false}
+                    value={output}
+                    className={`w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 ${isValid ? 'text-accent' : 'text-red-400'}`}
+                    placeholder='Result will appear here...'
+                  />
+                ) : (
+                  <JsonTree 
+                    data={parsedData} 
+                    expandDepth={expandDepth} 
+                    syncId={syncId} 
+                  />
+                )}
                 
+                {/* Copy Button (Only show on hover or always? Let's keep it visible but subtle) */}
                 <button 
                   onClick={handleCopy}
-                  className="absolute bottom-4 right-4 bg-element-bg hover:brightness-105 text-text-primary px-4 py-2 rounded-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95 shadow-sm"
+                  className="absolute bottom-4 right-4 bg-element-bg hover:brightness-105 text-text-primary px-4 py-2 rounded-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95 shadow-sm opacity-90 hover:opacity-100 z-10"
                 >
                   {copyFeedback ? <CheckCircle2 size={16} className="text-green-500"/> : <Copy size={16} />}
                   <span className="text-sm font-medium">{copyFeedback ? 'Copied!' : 'Copy Result'}</span>
