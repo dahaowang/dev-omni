@@ -1,9 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Inter:wght@100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    /* Fonts - Defaulting to Monospace as requested */
+    --font-interface: 'JetBrains Mono', 'Inter', system-ui, sans-serif;
+    --font-code: 'JetBrains Mono', 'Fira Code', monospace;
+
     /* Optimized Dark Theme */
     --color-app-bg: #0c0c0c;       /* Main content background - Deep Matte Black */
     --color-sidebar-bg: #050505;   /* Sidebar - Almost Pure Black */
@@ -135,7 +141,7 @@
 }
 
 body {
-  @apply bg-app-bg text-text-primary transition-colors duration-200;
+  @apply bg-app-bg text-text-primary transition-colors duration-200 font-sans;
 }
 
 /* Apply Enhanced Backdrop Blur for Glass Theme */

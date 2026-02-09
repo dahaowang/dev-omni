@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, ChevronDown, Moon, Type } from 'lucide-react';
-import { useTheme, ThemeName } from '../../context/ThemeContext';
+import { X, ChevronDown, Moon, Type, ALargeSmall } from 'lucide-react';
+import { useTheme, ThemeName, FontSettings } from '../../context/ThemeContext';
 
 interface SettingsSectionProps {
   title: string;
@@ -44,10 +44,31 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
+const INTERFACE_FONTS = [
+  'Inter', 
+  'JetBrains Mono', 
+  'Fira Code',
+  'Source Code Pro',
+  'system-ui'
+];
+
+const CODE_FONTS = [
+  'JetBrains Mono',
+  'Fira Code',
+  'Source Code Pro',
+  'Consolas',
+  'Menlo',
+  'monospace'
+];
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, fonts, setFonts } = useTheme();
 
   if (!isOpen) return null;
+
+  const handleFontChange = (type: keyof FontSettings, value: string) => {
+    setFonts({ ...fonts, [type]: value });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
@@ -84,6 +105,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
                 </div>
               </div>
+            </SettingsSection>
+
+            {/* Typography Section */}
+            <SettingsSection title="Typography" icon={<ALargeSmall size={18} />} defaultOpen={true}>
+              
+              {/* Interface Font */}
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                   <label className="text-sm text-text-primary font-medium">Interface Font</label>
+                   <span className="text-[10px] text-text-secondary">Used for UI, sidebar, and headers</span>
+                </div>
+                <div className="relative">
+                  <select
+                    value={fonts.interface}
+                    onChange={(e) => handleFontChange('interface', e.target.value)}
+                    className="appearance-none bg-element-bg border border-border-base text-text-primary text-sm rounded-md pl-3 pr-8 py-1.5 focus:outline-none focus:border-accent cursor-pointer transition-colors hover:border-border-hover min-w-[160px]"
+                  >
+                    {INTERFACE_FONTS.map(font => (
+                      <option key={font} value={font}>{font}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Code Font */}
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex flex-col">
+                   <label className="text-sm text-text-primary font-medium">Editor Font</label>
+                   <span className="text-[10px] text-text-secondary">Used for code inputs and outputs</span>
+                </div>
+                <div className="relative">
+                  <select
+                    value={fonts.code}
+                    onChange={(e) => handleFontChange('code', e.target.value)}
+                    className="appearance-none bg-element-bg border border-border-base text-text-primary text-sm rounded-md pl-3 pr-8 py-1.5 focus:outline-none focus:border-accent cursor-pointer transition-colors hover:border-border-hover min-w-[160px]"
+                  >
+                    {CODE_FONTS.map(font => (
+                      <option key={font} value={font}>{font}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                </div>
+              </div>
+
             </SettingsSection>
 
             {/* Editor Section */}

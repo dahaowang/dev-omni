@@ -42,8 +42,8 @@ module.exports = {
         }
       },
       fontFamily: {
-        mono: ['"JetBrains Mono"', '"Fira Code"', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
-        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-code)', '"JetBrains Mono"', '"Fira Code"', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
+        sans: ['var(--font-interface)', '"Inter"', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         fadeIn: {
