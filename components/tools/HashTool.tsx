@@ -3,7 +3,8 @@ import {
   PanelLeft, 
   Copy, 
   CheckCircle2, 
-  Trash2
+  Trash2,
+  Fingerprint
 } from 'lucide-react';
 
 interface HashToolProps {
@@ -12,17 +13,22 @@ interface HashToolProps {
   toolLabel: string;
 }
 
-type HashAlgorithm = 'md5' | 'sha1' | 'sha256' | 'sha512';
+const ALGORITHMS = ['md5', 'sha1', 'sha256', 'sha512'] as const;
+type HashAlgorithm = typeof ALGORITHMS[number];
 
 export const HashTool: React.FC<HashToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [input, setInput] = useState<string>('');
-  const [output, setOutput] = useState<string>('');
-  const [algorithm, setAlgorithm] = useState<HashAlgorithm>('md5');
-  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [results, setResults] = useState<Record<HashAlgorithm, string>>({
+    md5: '',
+    sha1: '',
+    sha256: '',
+    sha512: ''
+  });
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!input) {
-      setOutput('');
+      setResults({ md5: '', sha1: '', sha256: '', sha512: '' });
       return;
     }
 
@@ -30,22 +36,31 @@ export const HashTool: React.FC<HashToolProps> = ({ isSidebarOpen, toggleSidebar
       // Use Electron's Node integration
       if ((window as any).require) {
         const crypto = (window as any).require('crypto');
-        const hash = crypto.createHash(algorithm).update(input).digest('hex');
-        setOutput(hash);
+        const newResults = {} as Record<HashAlgorithm, string>;
+        
+        ALGORITHMS.forEach(algo => {
+          newResults[algo] = crypto.createHash(algo).update(input).digest('hex');
+        });
+        
+        setResults(newResults);
       } else {
-        // Fallback or development mode message
-        setOutput('Error: Node integration not available. Run in Electron.');
+        // Fallback for development mode in browser
+        const mockResults = {} as Record<HashAlgorithm, string>;
+        ALGORITHMS.forEach(algo => {
+             mockResults[algo] = `[${algo} placeholder - requires Electron]`;
+        });
+        setResults(mockResults);
       }
     } catch (error) {
       console.error('Hash calculation error:', error);
-      setOutput('Error calculating hash');
     }
-  }, [input, algorithm]);
+  }, [input]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(output);
-    setCopyFeedback(true);
-    setTimeout(() => setCopyFeedback(false), 2000);
+  const handleCopy = (text: string, algo: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopyFeedback(algo);
+    setTimeout(() => setCopyFeedback(null), 2000);
   };
 
   const handleClear = () => {
@@ -73,71 +88,68 @@ export const HashTool: React.FC<HashToolProps> = ({ isSidebarOpen, toggleSidebar
             <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
           </div>
         </div>
-
-        {/* Toolbar / Algorithm Selector */}
-        <div className="flex items-center space-x-3 electron-no-drag">
-           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
-             {(['md5', 'sha1', 'sha256', 'sha512'] as HashAlgorithm[]).map((algo) => (
-               <button
-                 key={algo}
-                 onClick={() => setAlgorithm(algo)}
-                 className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${
-                   algorithm === algo 
-                     ? 'bg-element-bg text-text-primary shadow-sm' 
-                     : 'text-text-secondary hover:text-text-primary'
-                 }`}
-               >
-                 {algo.toUpperCase()}
-               </button>
-             ))}
-           </div>
-        </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col p-4 overflow-hidden space-y-4">
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-5xl mx-auto flex flex-col gap-6">
         
-        {/* Input Section */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-2 pl-1">
-             <div className="text-sm font-medium text-text-secondary">Input Text</div>
-             <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-               <Trash2 size={12} /> Clear
-             </button>
+          {/* Input Section */}
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-2 px-1">
+               <div className="text-sm font-medium text-text-secondary">Input Text</div>
+               <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
+                 <Trash2 size={12} /> Clear
+               </button>
+            </div>
+            <div className="bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors h-32 shrink-0 shadow-sm">
+              <textarea 
+                 value={input}
+                 onChange={(e) => setInput(e.target.value)}
+                 className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none placeholder-text-secondary"
+                 placeholder="Type or paste content here..."
+                 spellCheck={false}
+              />
+            </div>
           </div>
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-            <textarea 
-               value={input}
-               onChange={(e) => setInput(e.target.value)}
-               className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none placeholder-text-secondary"
-               placeholder="Type or paste content here to generate hash..."
-               spellCheck={false}
-            />
-          </div>
-        </div>
 
-        {/* Output Section */}
-        <div className="shrink-0">
-          <div className="text-sm font-medium text-text-secondary mb-2 pl-1">
-            Generated Hash ({algorithm.toUpperCase()})
-          </div>
-          <div className="relative bg-panel-bg rounded-lg border border-border-base overflow-hidden">
-             <div className="p-4 pr-12 font-mono text-sm break-all text-accent min-h-[3.5rem] flex items-center">
-               {output || <span className="text-text-secondary opacity-50">Hash will appear here...</span>}
+          {/* Outputs Section */}
+          <div className="flex flex-col gap-3">
+             <div className="text-sm font-medium text-text-secondary px-1 flex items-center gap-2">
+                <Fingerprint size={16} />
+                <span>Generated Hashes</span>
              </div>
              
-             {output && (
-                <button 
-                  onClick={handleCopy}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded-md transition-colors"
-                  title="Copy Hash"
-                >
-                  {copyFeedback ? <CheckCircle2 size={18} className="text-green-500" /> : <Copy size={18} />}
-                </button>
-             )}
+             <div className="grid gap-3">
+               {ALGORITHMS.map((algo) => (
+                 <div 
+                    key={algo} 
+                    className="group bg-panel-bg border border-border-base rounded-lg p-4 flex flex-col gap-2 hover:border-accent/50 transition-colors shadow-sm"
+                 >
+                    <div className="flex items-center justify-between">
+                       <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider bg-element-bg px-2 py-0.5 rounded border border-border-base">
+                          {algo.toUpperCase()}
+                       </span>
+                       {results[algo] && (
+                          <button 
+                            onClick={() => handleCopy(results[algo], algo)}
+                            className="text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 transition-all active:scale-95"
+                            title="Copy Hash"
+                          >
+                            {copyFeedback === algo ? <CheckCircle2 size={16} className="text-green-500" /> : <Copy size={16} />}
+                          </button>
+                       )}
+                    </div>
+                    
+                    <div className="font-mono text-sm text-accent break-all selection:bg-accent/20">
+                       {results[algo] || <span className="text-text-secondary opacity-30 italic">Waiting for input...</span>}
+                    </div>
+                 </div>
+               ))}
+             </div>
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );
