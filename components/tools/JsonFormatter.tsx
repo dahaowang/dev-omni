@@ -11,6 +11,8 @@ import {
   Copy,
   ArrowRightLeft
 } from 'lucide-react';
+// @ts-ignore
+import { jsonrepair } from 'jsonrepair';
 
 interface JsonFormatterProps {
   isSidebarOpen: boolean;
@@ -211,15 +213,6 @@ const sortObjectKeys = (obj: any): any => {
   return obj;
 };
 
-const looseJsonParse = (str: string) => {
-  try {
-    // eslint-disable-next-line no-new-func
-    return Function('"use strict";return (' + str + ')')();
-  } catch (e) {
-    return null;
-  }
-};
-
 const parseJsonError = (e: Error, text: string): ErrorDetails => {
   let line = 1;
   let column = 1;
@@ -312,14 +305,20 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   };
 
   const handleRepair = () => {
-    const repairedObj = looseJsonParse(input);
-    if (repairedObj) {
-      const formatted = JSON.stringify(repairedObj, null, 2);
+    try {
+      // Use jsonrepair to fix the JSON string
+      const repaired = jsonrepair(input);
+      
+      // Parse it to ensure it's valid object, then stringify to format it nicely
+      const parsed = JSON.parse(repaired);
+      const formatted = JSON.stringify(parsed, null, 2);
+      
       setRepairedJson(formatted);
       setOutput(formatted);
       setDiffMode(true);
-    } else {
-      setErrorDetails({ message: "Failed to repair automatically.", line: 0, column: 0 });
+    } catch (e) {
+      // jsonrepair failed or JSON.parse failed
+      setErrorDetails({ message: "Failed to repair automatically: " + (e as Error).message, line: 0, column: 0 });
     }
   };
 

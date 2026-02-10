@@ -16,7 +16,8 @@
     "qrcode": "^1.5.3",
     "jsqr": "^1.4.0",
     "cron-parser": "^4.9.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "jsonrepair": "^3.6.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",
