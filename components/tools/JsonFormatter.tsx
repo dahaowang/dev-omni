@@ -9,8 +9,7 @@ import {
   ArrowDownAZ,
   Wrench,
   Copy,
-  ArrowRightLeft,
-  X
+  ArrowRightLeft
 } from 'lucide-react';
 
 interface JsonFormatterProps {
@@ -26,50 +25,86 @@ interface ErrorDetails {
   column: number;
 }
 
-// --- Utils: Diff Logic (Inline to keep self-contained as requested by style) ---
+// --- Diff Utils ---
 
 type DiffType = 'same' | 'added' | 'removed';
 interface DiffLine { type: DiffType; content: string; }
 interface DiffRowItem { type: DiffType; content: string; lineNumber: number; }
 interface DiffRow { left?: DiffRowItem; right?: DiffRowItem; }
 
-function computeLineDiff(text1: string, text2: string): DiffLine[] {
-  const lines1 = text1.split(/\r?\n/);
-  const lines2 = text2.split(/\r?\n/);
+// Generic Diff Algorithm (LCS) for Char-level diffs
+function computeGenericDiff<T>(
+  seq1: T[], 
+  seq2: T[], 
+  isEqual: (a: T, b: T) => boolean
+): { type: DiffType, content: T }[] {
   
-  // Simple LCS implementation
-  const m = lines1.length;
-  const n = lines2.length;
-  const dp = new Int32Array((m + 1) * (n + 1));
-  const width = n + 1;
+  let start = 0;
+  while (start < seq1.length && start < seq2.length && isEqual(seq1[start], seq2[start])) {
+    start++;
+  }
 
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (lines1[i - 1] === lines2[j - 1]) {
-        dp[i * width + j] = dp[(i - 1) * width + (j - 1)] + 1;
-      } else {
-        const up = dp[(i - 1) * width + j];
-        const left = dp[i * width + (j - 1)];
-        dp[i * width + j] = up > left ? up : left;
+  let end1 = seq1.length - 1;
+  let end2 = seq2.length - 1;
+  while (end1 >= start && end2 >= start && isEqual(seq1[end1], seq2[end2])) {
+    end1--;
+    end2--;
+  }
+
+  const mid1 = seq1.slice(start, end1 + 1);
+  const mid2 = seq2.slice(start, end2 + 1);
+
+  let diffs: { type: DiffType, content: T }[] = [];
+  const m = mid1.length;
+  const n = mid2.length;
+
+  if (m === 0) {
+    diffs = mid2.map(item => ({ type: 'added' as DiffType, content: item }));
+  } else if (n === 0) {
+    diffs = mid1.map(item => ({ type: 'removed' as DiffType, content: item }));
+  } else {
+    const width = n + 1;
+    const dp = new Int32Array((m + 1) * width);
+
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (isEqual(mid1[i - 1], mid2[j - 1])) {
+          dp[i * width + j] = dp[(i - 1) * width + (j - 1)] + 1;
+        } else {
+          const up = dp[(i - 1) * width + j];
+          const left = dp[i * width + (j - 1)];
+          dp[i * width + j] = up > left ? up : left;
+        }
+      }
+    }
+
+    let i = m, j = n;
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && isEqual(mid1[i - 1], mid2[j - 1])) {
+        diffs.unshift({ type: 'same', content: mid1[i - 1] });
+        i--; j--;
+      } else if (j > 0 && (i === 0 || dp[i * width + (j - 1)] >= dp[(i - 1) * width + j])) {
+        diffs.unshift({ type: 'added', content: mid2[j - 1] });
+        j--;
+      } else if (i > 0 && (j === 0 || dp[i * width + (j - 1)] < dp[(i - 1) * width + j])) {
+        diffs.unshift({ type: 'removed', content: mid1[i - 1] });
+        i--;
       }
     }
   }
 
-  let i = m, j = n;
-  const diffs: DiffLine[] = [];
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && lines1[i - 1] === lines2[j - 1]) {
-      diffs.unshift({ type: 'same', content: lines1[i - 1] });
-      i--; j--;
-    } else if (j > 0 && (i === 0 || dp[i * width + (j - 1)] >= dp[(i - 1) * width + j])) {
-      diffs.unshift({ type: 'added', content: lines2[j - 1] });
-      j--;
-    } else if (i > 0 && (j === 0 || dp[i * width + (j - 1)] < dp[(i - 1) * width + j])) {
-      diffs.unshift({ type: 'removed', content: lines1[i - 1] });
-      i--;
-    }
-  }
-  return diffs;
+  const prefix = seq1.slice(0, start).map(item => ({ type: 'same' as DiffType, content: item }));
+  const suffix = seq1.slice(end1 + 1).map(item => ({ type: 'same' as DiffType, content: item }));
+
+  return [...prefix, ...diffs, ...suffix];
+}
+
+// Line Diff Wrapper
+function computeLineDiff(text1: string, text2: string): DiffLine[] {
+  const lines1 = text1.split(/\r?\n/);
+  const lines2 = text2.split(/\r?\n/);
+  const diffs = computeGenericDiff(lines1, lines2, (a, b) => a === b);
+  return diffs.map(d => ({ type: d.type, content: d.content }));
 }
 
 function processDiffToRows(diffs: DiffLine[]): DiffRow[] {
@@ -108,7 +143,61 @@ function processDiffToRows(diffs: DiffLine[]): DiffRow[] {
   return rows;
 }
 
-// --- Utils: JSON Logic ---
+interface InlineDiffPart { type: DiffType; content: string; }
+
+function computeInlineDiff(text1: string, text2: string): InlineDiffPart[] {
+  const chars1 = text1.split('');
+  const chars2 = text2.split('');
+  const raw = computeGenericDiff(chars1, chars2, (a, b) => a === b);
+  
+  // Aggregate
+  const aggregated: InlineDiffPart[] = [];
+  if (raw.length === 0) return [];
+  
+  let current = raw[0];
+  let buffer = current.content;
+  
+  for (let i = 1; i < raw.length; i++) {
+    const next = raw[i];
+    if (next.type === current.type) {
+      buffer += next.content;
+    } else {
+      aggregated.push({ type: current.type, content: buffer });
+      current = next;
+      buffer = next.content;
+    }
+  }
+  aggregated.push({ type: current.type, content: buffer });
+  return aggregated;
+}
+
+const InlineDiffRenderer: React.FC<{ parts: InlineDiffPart[], displayType: 'left' | 'right' }> = ({ parts, displayType }) => {
+  return (
+    <span>
+      {parts.map((part, idx) => {
+        if (displayType === 'left') {
+           // Show same and removed
+           if (part.type === 'added') return null;
+           return (
+             <span key={idx} className={part.type === 'removed' ? 'bg-red-500/40 rounded-[2px]' : ''}>
+               {part.content}
+             </span>
+           );
+        } else {
+           // Show same and added
+           if (part.type === 'removed') return null;
+           return (
+             <span key={idx} className={part.type === 'added' ? 'bg-green-500/40 rounded-[2px]' : ''}>
+               {part.content}
+             </span>
+           );
+        }
+      })}
+    </span>
+  );
+};
+
+// --- JSON Utils ---
 
 const sortObjectKeys = (obj: any): any => {
   if (Array.isArray(obj)) {
@@ -122,7 +211,6 @@ const sortObjectKeys = (obj: any): any => {
   return obj;
 };
 
-// "Loose" parser to repair JSON (handles single quotes, trailing commas, unquoted keys)
 const looseJsonParse = (str: string) => {
   try {
     // eslint-disable-next-line no-new-func
@@ -136,11 +224,9 @@ const parseJsonError = (e: Error, text: string): ErrorDetails => {
   let line = 1;
   let column = 1;
   
-  // V8 SyntaxError: "Unexpected token } in JSON at position 10"
   const match = e.message.match(/at position (\d+)/);
   if (match) {
     const pos = parseInt(match[1], 10);
-    // Calculate line and col
     for (let i = 0; i < pos && i < text.length; i++) {
       if (text[i] === '\n') {
         line++;
@@ -149,16 +235,8 @@ const parseJsonError = (e: Error, text: string): ErrorDetails => {
         column++;
       }
     }
-  } else {
-    // If no position, assume it's roughly at the end or general error
-    // Some envs might not give position.
   }
-  
-  return {
-    message: e.message,
-    line,
-    column
-  };
+  return { message: e.message, line, column };
 };
 
 // --- Component ---
@@ -194,12 +272,13 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       const parsed = JSON.parse(input);
       setIsValid(true);
       setErrorDetails(null);
-      // Auto-format valid JSON to output pane
+      
+      // Auto-populate output if valid
       setOutput(JSON.stringify(parsed, null, 2));
-      // Disable diff mode if it becomes valid (unless specifically wanting to compare old broken vs new?)
-      // User request: "If json valid, default auto call Format to display in right area".
-      // Usually better to exit diff mode if we are auto-formatting.
-      if (diffMode) setDiffMode(false);
+      
+      // If we are currently in diff mode but the input is now valid, 
+      // we likely fixed it, so we can exit diff mode (optional UX choice, but requested flow implies real-time updates)
+      // We'll keep diff mode strictly for the "Repair" action comparison, but update validity.
     } catch (e) {
       setIsValid(false);
       setErrorDetails(parseJsonError(e as Error, input));
@@ -212,7 +291,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       const obj = JSON.parse(input);
       setOutput(JSON.stringify(obj, null, 2));
       setDiffMode(false);
-    } catch (e) { /* ignore, disabled button */ }
+    } catch (e) { /* ignore */ }
   };
 
   const handleMinify = () => {
@@ -350,7 +429,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
         </div>
       </div>
 
-      {/* Main Container: Stacked Flex to accommodate Debug Panel at bottom */}
+      {/* Main Container */}
       <div className="flex-1 flex flex-col min-h-0">
         
         {/* Workspace: Split Panes */}
@@ -359,7 +438,10 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
           {/* Left Pane: Input */}
           <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
             <div className="flex items-center justify-between mb-2 px-1">
-              <div className="text-sm font-bold text-text-secondary uppercase tracking-wider">Input</div>
+              <div className="flex items-center gap-2">
+                 <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Input</span>
+                 {diffMode && <span className="text-[10px] bg-accent/10 text-accent px-2 rounded-full font-medium">Click to Edit</span>}
+              </div>
               <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
                 <Trash2 size={12} /> Clear
               </button>
@@ -368,28 +450,39 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
               !isValid && input ? 'border-red-500/30' : 'border-border-base focus-within:border-accent'
             }`}>
               {diffMode ? (
-                  <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
-                    {diffRows.map((row, idx) => (
-                        <div key={idx} className={`flex ${row.left?.type === 'removed' ? 'bg-red-500/10' : ''}`}>
-                          <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
-                              {row.left?.lineNumber}
-                          </div>
-                          <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
-                              row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
-                          }`}>
-                              {row.left?.content || ''}
-                          </div>
-                        </div>
-                    ))}
+                  <div 
+                    className="w-full h-full overflow-auto font-mono text-sm leading-6 cursor-text"
+                    onClick={() => setDiffMode(false)} // Switch back to edit mode on click
+                  >
+                    {diffRows.map((row, idx) => {
+                        let inlineDiffs: InlineDiffPart[] | null = null;
+                        if (row.left && row.right && row.left.type === 'removed' && row.right.type === 'added') {
+                           inlineDiffs = computeInlineDiff(row.left.content, row.right.content);
+                        }
+                        
+                        return (
+                            <div key={idx} className={`flex ${row.left?.type === 'removed' ? 'bg-red-500/10' : ''}`}>
+                              <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
+                                  {row.left?.lineNumber}
+                              </div>
+                              <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
+                                  row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
+                              }`}>
+                                  {inlineDiffs ? (
+                                     <InlineDiffRenderer parts={inlineDiffs} displayType="left" />
+                                  ) : (
+                                     row.left?.content || ''
+                                  )}
+                              </div>
+                            </div>
+                        );
+                    })}
                   </div>
               ) : (
                   <textarea
                     spellCheck={false}
                     value={input}
-                    onChange={(e) => {
-                      setInput(e.target.value);
-                      setDiffMode(false);
-                    }}
+                    onChange={(e) => setInput(e.target.value)}
                     className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
                     placeholder='Paste JSON here...'
                   />
@@ -422,18 +515,29 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
             <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
               {diffMode ? (
                   <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
-                    {diffRows.map((row, idx) => (
-                        <div key={idx} className={`flex ${row.right?.type === 'added' ? 'bg-green-500/10' : ''}`}>
-                          <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
-                              {row.right?.lineNumber}
-                          </div>
-                          <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
-                              row.right?.type === 'added' ? 'text-text-primary' : 'text-accent'
-                          }`}>
-                              {row.right?.content || ''}
-                          </div>
-                        </div>
-                    ))}
+                    {diffRows.map((row, idx) => {
+                        let inlineDiffs: InlineDiffPart[] | null = null;
+                        if (row.left && row.right && row.left.type === 'removed' && row.right.type === 'added') {
+                           inlineDiffs = computeInlineDiff(row.left.content, row.right.content);
+                        }
+
+                        return (
+                            <div key={idx} className={`flex ${row.right?.type === 'added' ? 'bg-green-500/10' : ''}`}>
+                              <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
+                                  {row.right?.lineNumber}
+                              </div>
+                              <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
+                                  row.right?.type === 'added' ? 'text-text-primary' : 'text-accent'
+                              }`}>
+                                  {inlineDiffs ? (
+                                     <InlineDiffRenderer parts={inlineDiffs} displayType="right" />
+                                  ) : (
+                                     row.right?.content || ''
+                                  )}
+                              </div>
+                            </div>
+                        );
+                    })}
                   </div>
               ) : (
                   <textarea
