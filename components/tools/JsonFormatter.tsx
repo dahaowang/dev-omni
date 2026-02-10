@@ -9,7 +9,8 @@ import {
   ArrowDownAZ,
   Wrench,
   Copy,
-  ArrowRightLeft
+  ArrowRightLeft,
+  X
 } from 'lucide-react';
 
 interface JsonFormatterProps {
@@ -17,6 +18,12 @@ interface JsonFormatterProps {
   toggleSidebar: () => void;
   toolLabel: string;
   initialValue?: string;
+}
+
+interface ErrorDetails {
+  message: string;
+  line: number;
+  column: number;
 }
 
 // --- Utils: Diff Logic (Inline to keep self-contained as requested by style) ---
@@ -125,6 +132,35 @@ const looseJsonParse = (str: string) => {
   }
 };
 
+const parseJsonError = (e: Error, text: string): ErrorDetails => {
+  let line = 1;
+  let column = 1;
+  
+  // V8 SyntaxError: "Unexpected token } in JSON at position 10"
+  const match = e.message.match(/at position (\d+)/);
+  if (match) {
+    const pos = parseInt(match[1], 10);
+    // Calculate line and col
+    for (let i = 0; i < pos && i < text.length; i++) {
+      if (text[i] === '\n') {
+        line++;
+        column = 1;
+      } else {
+        column++;
+      }
+    }
+  } else {
+    // If no position, assume it's roughly at the end or general error
+    // Some envs might not give position.
+  }
+  
+  return {
+    message: e.message,
+    line,
+    column
+  };
+};
+
 // --- Component ---
 
 export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
@@ -132,7 +168,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   const [output, setOutput] = useState('');
   
   const [isValid, setIsValid] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
   
   // View State
   const [diffMode, setDiffMode] = useState(false);
@@ -147,24 +183,26 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
     }
   }, [initialValue]);
 
-  // Validation Effect
+  // Validation & Auto-Format Effect
   useEffect(() => {
     if (!input.trim()) {
       setIsValid(true);
-      setErrorMsg(null);
+      setErrorDetails(null);
       return;
     }
     try {
-      JSON.parse(input);
+      const parsed = JSON.parse(input);
       setIsValid(true);
-      setErrorMsg(null);
-      // Auto-populate output if in diff mode or just generally? 
-      // User request implies Format button is manual action, 
-      // but usually editors update live. Let's keep output manual via buttons for "Format"
-      // unless we are repairing.
+      setErrorDetails(null);
+      // Auto-format valid JSON to output pane
+      setOutput(JSON.stringify(parsed, null, 2));
+      // Disable diff mode if it becomes valid (unless specifically wanting to compare old broken vs new?)
+      // User request: "If json valid, default auto call Format to display in right area".
+      // Usually better to exit diff mode if we are auto-formatting.
+      if (diffMode) setDiffMode(false);
     } catch (e) {
       setIsValid(false);
-      setErrorMsg((e as Error).message);
+      setErrorDetails(parseJsonError(e as Error, input));
     }
   }, [input]);
 
@@ -202,9 +240,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       setOutput(formatted);
       setDiffMode(true);
     } else {
-      // If even loose parse fails, maybe try basic string replacements or show error
-      // For this implementation, we assume loose parse covers most "repairable" cases.
-      setErrorMsg("Failed to repair automatically.");
+      setErrorDetails({ message: "Failed to repair automatically.", line: 0, column: 0 });
     }
   };
 
@@ -219,6 +255,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
     setOutput('');
     setDiffMode(false);
     setIsValid(true);
+    setErrorDetails(null);
   };
 
   // Diff Computation
@@ -313,105 +350,128 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
         </div>
       </div>
 
-      {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main Container: Stacked Flex to accommodate Debug Panel at bottom */}
+      <div className="flex-1 flex flex-col min-h-0">
         
-        {/* Left Pane: Input */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
-          <div className="flex items-center justify-between mb-2 px-1">
-             <div className="text-sm font-bold text-text-secondary uppercase tracking-wider">Input</div>
-             <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-               <Trash2 size={12} /> Clear
-             </button>
+        {/* Workspace: Split Panes */}
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          
+          {/* Left Pane: Input */}
+          <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <div className="text-sm font-bold text-text-secondary uppercase tracking-wider">Input</div>
+              <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
+                <Trash2 size={12} /> Clear
+              </button>
+            </div>
+            <div className={`flex-1 bg-panel-bg rounded-lg border overflow-hidden relative transition-colors ${
+              !isValid && input ? 'border-red-500/30' : 'border-border-base focus-within:border-accent'
+            }`}>
+              {diffMode ? (
+                  <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
+                    {diffRows.map((row, idx) => (
+                        <div key={idx} className={`flex ${row.left?.type === 'removed' ? 'bg-red-500/10' : ''}`}>
+                          <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
+                              {row.left?.lineNumber}
+                          </div>
+                          <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
+                              row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
+                          }`}>
+                              {row.left?.content || ''}
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+              ) : (
+                  <textarea
+                    spellCheck={false}
+                    value={input}
+                    onChange={(e) => {
+                      setInput(e.target.value);
+                      setDiffMode(false);
+                    }}
+                    className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
+                    placeholder='Paste JSON here...'
+                  />
+              )}
+            </div>
           </div>
-          <div className={`flex-1 bg-panel-bg rounded-lg border overflow-hidden relative transition-colors ${
-             !isValid && input ? 'border-red-500/30' : 'border-border-base focus-within:border-accent'
-          }`}>
-             {/* If in diff mode, overlay the 'left' side of diff, OR just show textarea with highlights? 
-                 Standard diff is side-by-side. We'll reuse the textarea for editing if not in diff mode.
-                 If in diff mode, we render the Left Diff Column to show removals.
-             */}
-             {diffMode ? (
-                <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
-                   {diffRows.map((row, idx) => (
-                      <div key={idx} className={`flex ${row.left?.type === 'removed' ? 'bg-red-500/10' : ''}`}>
-                         <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
-                            {row.left?.lineNumber}
-                         </div>
-                         <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
-                            row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
-                         }`}>
-                            {row.left?.content || ''}
-                         </div>
-                      </div>
-                   ))}
-                </div>
-             ) : (
-                <textarea
-                  spellCheck={false}
-                  value={input}
-                  onChange={(e) => {
-                     setInput(e.target.value);
-                     setDiffMode(false); // Reset diff on edit
-                  }}
-                  className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
-                  placeholder='Paste JSON here...'
-                />
-             )}
+
+          {/* Right Pane: Output */}
+          <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Output</span>
+                  {diffMode && (
+                    <span className="text-[10px] bg-accent/20 text-accent px-2 rounded-full font-medium flex items-center gap-1">
+                      <ArrowRightLeft size={10} /> Diff View
+                    </span>
+                  )}
+              </div>
+              {(output || repairedJson) && (
+                <button 
+                  onClick={handleCopy}
+                  className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+                >
+                  {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
+                  <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
+                </button>
+              )}
+            </div>
+            
+            <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
+              {diffMode ? (
+                  <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
+                    {diffRows.map((row, idx) => (
+                        <div key={idx} className={`flex ${row.right?.type === 'added' ? 'bg-green-500/10' : ''}`}>
+                          <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
+                              {row.right?.lineNumber}
+                          </div>
+                          <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
+                              row.right?.type === 'added' ? 'text-text-primary' : 'text-accent'
+                          }`}>
+                              {row.right?.content || ''}
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+              ) : (
+                  <textarea
+                    readOnly
+                    spellCheck={false}
+                    value={output}
+                    className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-accent placeholder-text-secondary"
+                    placeholder='Result will appear here...'
+                  />
+              )}
+            </div>
           </div>
-          {!isValid && errorMsg && <div className="text-xs text-red-400 mt-2 px-1 font-mono truncate">{errorMsg}</div>}
         </div>
 
-        {/* Right Pane: Output */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
-          <div className="flex items-center justify-between mb-2 px-1">
-             <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Output</span>
-                {diffMode && (
-                   <span className="text-[10px] bg-accent/20 text-accent px-2 rounded-full font-medium flex items-center gap-1">
-                     <ArrowRightLeft size={10} /> Diff View
-                   </span>
-                )}
-             </div>
-             {/* Copy Button */}
-             {(output || repairedJson) && (
-               <button 
-                 onClick={handleCopy}
-                 className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
-               >
-                 {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
-                 <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
-               </button>
-             )}
-          </div>
-          
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
-             {diffMode ? (
-                <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
-                   {diffRows.map((row, idx) => (
-                      <div key={idx} className={`flex ${row.right?.type === 'added' ? 'bg-green-500/10' : ''}`}>
-                         <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
-                            {row.right?.lineNumber}
-                         </div>
-                         <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
-                            row.right?.type === 'added' ? 'text-text-primary' : 'text-accent'
-                         }`}>
-                            {row.right?.content || ''}
-                         </div>
-                      </div>
-                   ))}
-                </div>
-             ) : (
-                <textarea
-                  readOnly
-                  spellCheck={false}
-                  value={output}
-                  className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-accent placeholder-text-secondary"
-                  placeholder='Result will appear here...'
-                />
-             )}
-          </div>
-        </div>
+        {/* Debug / Error Panel (VS Code Style) */}
+        {!isValid && errorDetails && (
+           <div className="h-32 shrink-0 border-t border-border-base bg-panel-bg flex flex-col animate-slide-up-fade shadow-xl z-10">
+              <div className="h-8 border-b border-border-base flex items-center px-4 gap-2 bg-sidebar-bg/50">
+                 <XCircle size={14} className="text-red-400" />
+                 <span className="text-xs font-bold text-text-secondary uppercase tracking-wide">Problems</span>
+                 <span className="bg-red-500/20 text-red-400 text-[10px] font-bold px-1.5 rounded-full min-w-[18px] text-center">1</span>
+              </div>
+              <div className="flex-1 overflow-auto p-0">
+                 <div className="flex items-center gap-3 px-4 py-2 hover:bg-white/5 cursor-pointer border-l-2 border-transparent hover:border-red-500 transition-colors group">
+                    <XCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
+                       <span className="text-xs font-medium text-text-primary truncate font-mono" title={errorDetails.message}>
+                          {errorDetails.message}
+                       </span>
+                       <div className="flex items-center gap-4 text-xs text-text-secondary shrink-0 font-mono opacity-70 group-hover:opacity-100">
+                          <span>JSON</span>
+                          <span>[Ln {errorDetails.line}, Col {errorDetails.column}]</span>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        )}
 
       </div>
     </div>
