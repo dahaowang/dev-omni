@@ -204,7 +204,7 @@ export const RandomStringTool: React.FC<RandomStringToolProps> = ({ isSidebarOpe
                       </button>
                    </div>
                    
-                   <p className="font-mono text-2xl text-text-primary break-all text-center leading-relaxed selection:bg-accent/30">
+                   <p className="font-mono text-sm leading-6 text-text-primary break-all text-center selection:bg-accent/30">
                      {output || <span className="text-text-secondary opacity-50 text-base">Select options to generate</span>}
                    </p>
                 </div>
@@ -212,7 +212,7 @@ export const RandomStringTool: React.FC<RandomStringToolProps> = ({ isSidebarOpe
                 <div className="mt-4 flex justify-end">
                    <button 
                      onClick={handleCopy}
-                     className="w-full md:w-auto flex items-center justify-center space-x-2 px-6 py-2 bg-element-bg border border-border-base text-text-primary rounded-md hover:border-accent hover:text-accent transition-all shadow-sm active:scale-95"
+                     className="w-full md:w-auto flex items-center justify-center space-x-2 px-4 py-1.5 bg-element-bg border border-border-base text-text-primary rounded-md hover:border-accent hover:text-accent transition-all shadow-sm active:scale-95 text-xs"
                    >
                      {copyFeedback ? <CheckCircle2 size={16} /> : <Copy size={16} />}
                      <span className="font-medium">{copyFeedback ? 'Copied' : 'Copy String'}</span>

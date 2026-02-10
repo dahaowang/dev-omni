@@ -160,7 +160,7 @@ export const CaseConverterTool: React.FC<CaseConverterToolProps> = ({ isSidebarO
              <textarea 
                value={input}
                onChange={(e) => setInput(e.target.value)}
-               className="w-full h-full bg-transparent resize-none p-4 font-mono text-lg text-text-primary focus:outline-none placeholder-text-secondary"
+               className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 text-text-primary focus:outline-none placeholder-text-secondary"
                placeholder="Paste variable name here..."
                spellCheck={false}
              />
