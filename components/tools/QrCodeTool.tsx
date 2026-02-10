@@ -206,72 +206,86 @@ export const QrCodeTool: React.FC<QrCodeToolProps> = ({ isSidebarOpen, toggleSid
       <div className="flex-1 flex flex-col p-6 overflow-hidden">
         
         {mode === 'generate' ? (
-          // --- Generator View ---
-          <div className="max-w-4xl mx-auto w-full flex flex-col md:flex-row gap-8 h-full">
-             <div className="flex-1 flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                   <label className="text-sm font-bold text-text-secondary uppercase tracking-wider">Content</label>
-                   <div className="flex-1 bg-panel-bg rounded-lg border border-border-base p-4 focus-within:border-accent transition-colors shadow-sm">
-                      <textarea
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        placeholder="Enter text or URL to generate QR code..."
-                        className="w-full h-48 bg-transparent resize-none outline-none text-text-primary placeholder-text-secondary font-mono text-sm"
-                      />
-                   </div>
-                   <p className="text-xs text-text-secondary">Type to update QR code automatically.</p>
+          // --- Generator View (Vertical Layout) ---
+          <div className="max-w-3xl mx-auto w-full flex flex-col gap-6 h-full">
+             
+             {/* Input Section */}
+             <div className="flex-1 flex flex-col min-h-0 bg-panel-bg border border-border-base rounded-lg shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between p-3 border-b border-border-base bg-sidebar-bg/30">
+                   <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Content</span>
+                   <span className="text-[10px] text-text-secondary">Updates automatically</span>
+                </div>
+                <div className="flex-1 relative">
+                   <textarea
+                     value={inputText}
+                     onChange={(e) => setInputText(e.target.value)}
+                     placeholder="Enter text or URL to generate QR code..."
+                     className="w-full h-full bg-app-bg resize-none outline-none text-text-primary placeholder-text-secondary font-mono text-sm p-4 leading-relaxed"
+                     spellCheck={false}
+                   />
                 </div>
              </div>
 
-             <div className="w-full md:w-80 flex flex-col items-center justify-center">
-                <div className="p-6 bg-panel-bg rounded-xl shadow-lg border border-border-base mb-6">
+             {/* Output & Controls Section */}
+             <div className="shrink-0 flex flex-col md:flex-row gap-6">
+                
+                {/* QR Preview */}
+                <div className="flex-1 bg-panel-bg border border-border-base rounded-lg p-6 flex items-center justify-center min-h-[240px] shadow-sm">
                    {qrImage ? (
-                     <img src={qrImage} alt="QR Code" className="w-48 h-48 object-contain rounded-sm" />
+                     <div className="bg-white p-3 rounded-lg shadow-sm">
+                        <img src={qrImage} alt="QR Code" className="w-48 h-48 object-contain" />
+                     </div>
                    ) : (
-                     <div className="w-48 h-48 flex items-center justify-center text-text-secondary opacity-30">
-                       <ScanLine size={48} />
+                     <div className="w-48 h-48 flex flex-col items-center justify-center text-text-secondary opacity-30">
+                       <ScanLine size={48} strokeWidth={1} />
+                       <span className="text-sm mt-2 font-medium">Preview</span>
                      </div>
                    )}
                 </div>
 
-                {/* Color Controls */}
-                <div className="grid grid-cols-2 gap-3 w-full mb-6">
-                   <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Foreground</label>
-                      <div className="flex items-center gap-2 bg-panel-bg border border-border-base rounded-lg p-1.5 hover:border-accent/50 transition-colors">
-                         <input 
-                           type="color" 
-                           value={fgColor}
-                           onChange={(e) => setFgColor(e.target.value)}
-                           className="w-6 h-6 rounded cursor-pointer border-none p-0 bg-transparent"
-                           title="Select Foreground Color"
-                         />
-                         <span className="text-xs font-mono text-text-primary uppercase flex-1 truncate">{fgColor}</span>
+                {/* Settings Panel */}
+                <div className="w-full md:w-72 bg-panel-bg border border-border-base rounded-lg p-5 flex flex-col gap-5 shadow-sm">
+                   <div className="space-y-4">
+                      <div className="flex flex-col gap-1.5">
+                         <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Foreground</label>
+                         <div className="flex items-center gap-3 bg-app-bg border border-border-base rounded-md p-2 px-3 hover:border-accent/50 transition-colors group cursor-pointer relative">
+                            <div className="w-6 h-6 rounded border border-border-base shadow-sm" style={{ backgroundColor: fgColor }}></div>
+                            <span className="text-xs font-mono text-text-primary">{fgColor}</span>
+                            <input 
+                              type="color" 
+                              value={fgColor}
+                              onChange={(e) => setFgColor(e.target.value)}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            />
+                         </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                         <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Background</label>
+                         <div className="flex items-center gap-3 bg-app-bg border border-border-base rounded-md p-2 px-3 hover:border-accent/50 transition-colors group cursor-pointer relative">
+                            <div className="w-6 h-6 rounded border border-border-base shadow-sm" style={{ backgroundColor: bgColor }}></div>
+                            <span className="text-xs font-mono text-text-primary">{bgColor}</span>
+                            <input 
+                              type="color" 
+                              value={bgColor}
+                              onChange={(e) => setBgColor(e.target.value)}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            />
+                         </div>
                       </div>
                    </div>
-                   <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Background</label>
-                      <div className="flex items-center gap-2 bg-panel-bg border border-border-base rounded-lg p-1.5 hover:border-accent/50 transition-colors">
-                         <input 
-                           type="color" 
-                           value={bgColor}
-                           onChange={(e) => setBgColor(e.target.value)}
-                           className="w-6 h-6 rounded cursor-pointer border-none p-0 bg-transparent"
-                           title="Select Background Color"
-                         />
-                         <span className="text-xs font-mono text-text-primary uppercase flex-1 truncate">{bgColor}</span>
-                      </div>
-                   </div>
+
+                   <div className="h-px bg-border-base/50" />
+                   
+                   <button
+                     onClick={downloadQR}
+                     disabled={!qrImage}
+                     className="mt-auto flex items-center justify-center space-x-2 px-4 py-2.5 bg-accent text-white rounded-md font-medium hover:bg-accent/90 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                   >
+                      <Download size={16} />
+                      <span>Download PNG</span>
+                   </button>
                 </div>
-                
-                <button
-                  onClick={downloadQR}
-                  disabled={!qrImage}
-                  className="flex items-center space-x-2 px-6 py-2 bg-accent text-white rounded-md font-medium hover:bg-accent/90 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                   <Download size={16} />
-                   <span>Download PNG</span>
-                </button>
+
              </div>
           </div>
         ) : (
