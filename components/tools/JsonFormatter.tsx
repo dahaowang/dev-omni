@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   PanelLeft, 
   Trash2, 
@@ -9,7 +9,12 @@ import {
   ArrowDownAZ,
   Wrench,
   Copy,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Quote,
+  Network,
+  Code2,
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
 // @ts-ignore
 import { jsonrepair } from 'jsonrepair';
@@ -28,39 +33,43 @@ interface ErrorDetails {
   column: number;
 }
 
-// --- Diff Utils ---
+interface JsonStats {
+  keys: number;
+  maxDepth: number;
+  objects: number;
+  arrays: number;
+  sizeBytes: number;
+  lines: number;
+  chars: number;
+}
+
+// --- Diff Utils (unchanged) ---
 
 type DiffType = 'same' | 'added' | 'removed';
 interface DiffLine { type: DiffType; content: string; }
 interface DiffRowItem { type: DiffType; content: string; lineNumber: number; }
 interface DiffRow { left?: DiffRowItem; right?: DiffRowItem; }
 
-// Generic Diff Algorithm (LCS) for Char-level diffs
 function computeGenericDiff<T>(
   seq1: T[], 
   seq2: T[], 
   isEqual: (a: T, b: T) => boolean
 ): { type: DiffType, content: T }[] {
-  
   let start = 0;
   while (start < seq1.length && start < seq2.length && isEqual(seq1[start], seq2[start])) {
     start++;
   }
-
   let end1 = seq1.length - 1;
   let end2 = seq2.length - 1;
   while (end1 >= start && end2 >= start && isEqual(seq1[end1], seq2[end2])) {
     end1--;
     end2--;
   }
-
   const mid1 = seq1.slice(start, end1 + 1);
   const mid2 = seq2.slice(start, end2 + 1);
-
   let diffs: { type: DiffType, content: T }[] = [];
   const m = mid1.length;
   const n = mid2.length;
-
   if (m === 0) {
     diffs = mid2.map(item => ({ type: 'added' as DiffType, content: item }));
   } else if (n === 0) {
@@ -68,7 +77,6 @@ function computeGenericDiff<T>(
   } else {
     const width = n + 1;
     const dp = new Int32Array((m + 1) * width);
-
     for (let i = 1; i <= m; i++) {
       for (let j = 1; j <= n; j++) {
         if (isEqual(mid1[i - 1], mid2[j - 1])) {
@@ -80,7 +88,6 @@ function computeGenericDiff<T>(
         }
       }
     }
-
     let i = m, j = n;
     while (i > 0 || j > 0) {
       if (i > 0 && j > 0 && isEqual(mid1[i - 1], mid2[j - 1])) {
@@ -95,14 +102,11 @@ function computeGenericDiff<T>(
       }
     }
   }
-
   const prefix = seq1.slice(0, start).map(item => ({ type: 'same' as DiffType, content: item }));
   const suffix = seq1.slice(end1 + 1).map(item => ({ type: 'same' as DiffType, content: item }));
-
   return [...prefix, ...diffs, ...suffix];
 }
 
-// Line Diff Wrapper
 function computeLineDiff(text1: string, text2: string): DiffLine[] {
   const lines1 = text1.split(/\r?\n/);
   const lines2 = text2.split(/\r?\n/);
@@ -116,7 +120,6 @@ function processDiffToRows(diffs: DiffLine[]): DiffRow[] {
   let bufferAdditions: DiffLine[] = [];
   let originalLineNum = 1;
   let modifiedLineNum = 1;
-
   const flushBuffers = () => {
     const count = Math.max(bufferRemovals.length, bufferAdditions.length);
     for (let k = 0; k < count; k++) {
@@ -128,7 +131,6 @@ function processDiffToRows(diffs: DiffLine[]): DiffRow[] {
     bufferRemovals = [];
     bufferAdditions = [];
   };
-
   diffs.forEach(item => {
     if (item.type === 'same') {
       flushBuffers();
@@ -152,14 +154,10 @@ function computeInlineDiff(text1: string, text2: string): InlineDiffPart[] {
   const chars1 = text1.split('');
   const chars2 = text2.split('');
   const raw = computeGenericDiff(chars1, chars2, (a, b) => a === b);
-  
-  // Aggregate
   const aggregated: InlineDiffPart[] = [];
   if (raw.length === 0) return [];
-  
   let current = raw[0];
   let buffer = current.content;
-  
   for (let i = 1; i < raw.length; i++) {
     const next = raw[i];
     if (next.type === current.type) {
@@ -179,24 +177,113 @@ const InlineDiffRenderer: React.FC<{ parts: InlineDiffPart[], displayType: 'left
     <span>
       {parts.map((part, idx) => {
         if (displayType === 'left') {
-           // Show same and removed
            if (part.type === 'added') return null;
-           return (
-             <span key={idx} className={part.type === 'removed' ? 'bg-red-500/40 rounded-[2px]' : ''}>
-               {part.content}
-             </span>
-           );
+           return <span key={idx} className={part.type === 'removed' ? 'bg-red-500/40 rounded-[2px]' : ''}>{part.content}</span>;
         } else {
-           // Show same and added
            if (part.type === 'removed') return null;
-           return (
-             <span key={idx} className={part.type === 'added' ? 'bg-green-500/40 rounded-[2px]' : ''}>
-               {part.content}
-             </span>
-           );
+           return <span key={idx} className={part.type === 'added' ? 'bg-green-500/40 rounded-[2px]' : ''}>{part.content}</span>;
         }
       })}
     </span>
+  );
+};
+
+// --- Tree View Component ---
+
+const JsonTreeNode: React.FC<{ 
+  name?: string; 
+  value: any; 
+  isLast: boolean; 
+  level: number; 
+}> = ({ name, value, isLast, level }) => {
+  const [expanded, setExpanded] = useState(true);
+  const isObject = typeof value === 'object' && value !== null;
+  const isArray = Array.isArray(value);
+  const isEmpty = isObject && Object.keys(value).length === 0;
+
+  const toggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpanded(!expanded);
+  };
+
+  const renderValue = (val: any) => {
+    if (typeof val === 'string') return <span className="text-green-400">"{val}"</span>;
+    if (typeof val === 'number') return <span className="text-orange-400">{val}</span>;
+    if (typeof val === 'boolean') return <span className="text-purple-400">{val.toString()}</span>;
+    if (val === null) return <span className="text-gray-500">null</span>;
+    return null;
+  };
+
+  const indent = level * 1.5;
+
+  if (isObject && !isEmpty) {
+    const keys = Object.keys(value);
+    const bracketOpen = isArray ? '[' : '{';
+    const bracketClose = isArray ? ']' : '}';
+    const length = isArray ? value.length : keys.length;
+
+    return (
+      <div className="font-mono text-sm leading-6">
+        <div 
+          className="flex hover:bg-white/5 cursor-pointer rounded px-1 -ml-1 select-none"
+          style={{ paddingLeft: `${indent}rem` }}
+          onClick={toggle}
+        >
+          <div className="mr-1 mt-1 text-text-secondary">
+             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </div>
+          <div className="flex-1">
+             {name && <span className="text-blue-400 mr-1">"{name}":</span>}
+             <span className="text-text-primary">{bracketOpen}</span>
+             {!expanded && (
+               <span className="text-text-secondary mx-1 text-xs">
+                 {isArray ? `Array(${length})` : `Object{${length}}`} ...
+               </span>
+             )}
+             {!expanded && <span className="text-text-primary">{bracketClose}{!isLast && ','}</span>}
+          </div>
+        </div>
+        
+        {expanded && (
+          <div>
+            {keys.map((key, idx) => (
+              <JsonTreeNode
+                key={key}
+                name={isArray ? undefined : key}
+                value={value[key]}
+                isLast={idx === keys.length - 1}
+                level={level + 1}
+              />
+            ))}
+            <div style={{ paddingLeft: `${indent + 1.25}rem` }} className="text-text-primary">
+               {bracketClose}{!isLast && ','}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Primitive or Empty
+  return (
+    <div 
+       className="font-mono text-sm leading-6 flex hover:bg-white/5 px-1 -ml-1 rounded"
+       style={{ paddingLeft: `${indent + 1.25}rem` }}
+    >
+       <div className="flex-1">
+         {name && <span className="text-blue-400 mr-1">"{name}":</span>}
+         {isEmpty ? (
+            <span className="text-text-primary">
+              {isArray ? '[]' : '{}'}{!isLast && ','}
+            </span>
+         ) : (
+            <span>
+              {renderValue(value)}
+              <span className="text-text-primary">{!isLast && ','}</span>
+            </span>
+         )}
+       </div>
+    </div>
   );
 };
 
@@ -217,7 +304,6 @@ const sortObjectKeys = (obj: any): any => {
 const parseJsonError = (e: Error, text: string): ErrorDetails => {
   let line = 1;
   let column = 1;
-  
   const match = e.message.match(/at position (\d+)/);
   if (match) {
     const pos = parseInt(match[1], 10);
@@ -233,6 +319,45 @@ const parseJsonError = (e: Error, text: string): ErrorDetails => {
   return { message: e.message, line, column };
 };
 
+const calculateJsonStats = (obj: any, text: string): JsonStats => {
+   let keys = 0;
+   let objects = 0;
+   let arrays = 0;
+   let maxDepth = 0;
+
+   const traverse = (o: any, depth: number) => {
+      if (depth > maxDepth) maxDepth = depth;
+      
+      if (Array.isArray(o)) {
+         arrays++;
+         o.forEach(i => traverse(i, depth + 1));
+      } else if (typeof o === 'object' && o !== null) {
+         objects++;
+         Object.keys(o).forEach(k => {
+            keys++;
+            traverse(o[k], depth + 1);
+         });
+      }
+   };
+
+   traverse(obj, 1);
+
+   // Blob size for bytes
+   const sizeBytes = new Blob([text]).size;
+   const lines = text.split('\n').length;
+   const chars = text.length;
+
+   return { keys, maxDepth, objects, arrays, sizeBytes, lines, chars };
+};
+
+const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
 // --- Component ---
 
 export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
@@ -244,8 +369,12 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   
   // View State
   const [diffMode, setDiffMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'code' | 'tree'>('code');
   const [repairedJson, setRepairedJson] = useState('');
   
+  const [parsedObject, setParsedObject] = useState<any>(null);
+  const [stats, setStats] = useState<JsonStats | null>(null);
+
   const [copyFeedback, setCopyFeedback] = useState(false);
 
   // Initialize
@@ -255,26 +384,40 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
     }
   }, [initialValue]);
 
-  // Validation & Auto-Format Effect
+  // Validation, Auto-Format & Stats Effect
   useEffect(() => {
     if (!input.trim()) {
       setIsValid(true);
       setErrorDetails(null);
+      setStats(null);
+      setParsedObject(null);
       return;
     }
     try {
       const parsed = JSON.parse(input);
       setIsValid(true);
       setErrorDetails(null);
+      setParsedObject(parsed);
       
-      // Auto-populate output if valid
-      setOutput(JSON.stringify(parsed, null, 2));
+      // Auto-populate output if valid & not diffing
+      if (!diffMode) {
+          const formatted = JSON.stringify(parsed, null, 2);
+          setOutput(formatted);
+          // Calculate stats based on formatted output usually, or input? 
+          // Use formatted for accurate line count of "pretty" json, or input for raw?
+          // Let's use the formatted version for stats to represent the "structure" better
+          setStats(calculateJsonStats(parsed, formatted));
+      } else {
+          // If in diff mode, stats might be irrelevant or based on repaired
+      }
       
     } catch (e) {
       setIsValid(false);
+      setParsedObject(null);
+      setStats(null); // Clear stats on invalid json
       setErrorDetails(parseJsonError(e as Error, input));
     }
-  }, [input]);
+  }, [input, diffMode]);
 
   // Actions
   const handleFormat = () => {
@@ -282,6 +425,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       const obj = JSON.parse(input);
       setOutput(JSON.stringify(obj, null, 2));
       setDiffMode(false);
+      setViewMode('code');
     } catch (e) { /* ignore */ }
   };
 
@@ -290,6 +434,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       const obj = JSON.parse(input);
       setOutput(JSON.stringify(obj));
       setDiffMode(false);
+      setViewMode('code');
     } catch (e) { /* ignore */ }
   };
 
@@ -299,6 +444,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       const sorted = sortObjectKeys(obj);
       setOutput(JSON.stringify(sorted, null, 2));
       setDiffMode(false);
+      setViewMode('code');
     } catch (e) { /* ignore */ }
   };
 
@@ -310,9 +456,46 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       
       setRepairedJson(formatted);
       setOutput(formatted);
+      setParsedObject(parsed);
+      setStats(calculateJsonStats(parsed, formatted));
       setDiffMode(true);
     } catch (e) {
       setErrorDetails({ message: "Failed to repair automatically: " + (e as Error).message, line: 0, column: 0 });
+    }
+  };
+
+  const handleEscape = () => {
+    // Escapes the current input string to a JSON string representation
+    if (!input) return;
+    const escaped = JSON.stringify(input);
+    // Remove the surrounding quotes added by stringify to just get the inner escaped content?
+    // Usually people want the quotes if it's for code. JSON.stringify("foo") -> ""foo""
+    // Let's keep it valid JSON string.
+    setInput(escaped);
+  };
+
+  const handleUnescape = () => {
+    // Unescapes: parse the string as JSON
+    if (!input) return;
+    try {
+        // If it starts with quote, try to parse it as a string
+        if (input.trim().startsWith('"')) {
+            const unescaped = JSON.parse(input);
+            if (typeof unescaped === 'string') {
+                setInput(unescaped);
+            } else {
+               // Fallback if it parsed to object
+               setInput(JSON.stringify(unescaped, null, 2));
+            }
+        } else {
+             // Maybe it's not quoted but contains escapes?
+             // Simple replace logic often safer for partials
+             const unescaped = input.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+             setInput(unescaped);
+        }
+    } catch (e) {
+        // Fallback simple unescape
+        // console.warn(e);
     }
   };
 
@@ -328,6 +511,8 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
     setDiffMode(false);
     setIsValid(true);
     setErrorDetails(null);
+    setParsedObject(null);
+    setStats(null);
   };
 
   // Diff Computation
@@ -372,12 +557,36 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
 
            <div className="w-px h-4 bg-border-base mx-1" />
 
-           {/* Actions */}
+           {/* String Tools */}
+           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
+              <button
+                 onClick={handleEscape}
+                 disabled={!input}
+                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
+                 title="Escape JSON String"
+              >
+                 <Quote size={14} />
+                 <span>Escape</span>
+              </button>
+              <button
+                 onClick={handleUnescape}
+                 disabled={!input}
+                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
+                 title="Unescape JSON String"
+              >
+                 <ArrowRightLeft size={14} />
+                 <span>Unescape</span>
+              </button>
+           </div>
+
+           <div className="w-px h-4 bg-border-base mx-1" />
+
+           {/* Format Tools */}
            <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
               <button
                  onClick={handleFormat}
                  disabled={!isValid || !input}
-                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30 disabled:cursor-not-allowed"
+                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
                  title="Format JSON"
               >
                  <AlignLeft size={14} />
@@ -386,7 +595,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
               <button
                  onClick={handleMinify}
                  disabled={!isValid || !input}
-                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30 disabled:cursor-not-allowed"
+                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
                  title="Minify JSON"
               >
                  <Minimize2 size={14} />
@@ -395,7 +604,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
               <button
                  onClick={handleSort}
                  disabled={!isValid || !input}
-                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30 disabled:cursor-not-allowed"
+                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
                  title="Sort Keys"
               >
                  <ArrowDownAZ size={14} />
@@ -488,6 +697,31 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
             <div className="flex items-center justify-between mb-2 px-1">
               <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Output</span>
+                  
+                  {/* View Toggles */}
+                  {!diffMode && parsedObject && (
+                    <div className="flex bg-panel-bg rounded border border-border-base p-0.5 ml-2">
+                      <button 
+                        onClick={() => setViewMode('code')}
+                        className={`p-1 rounded text-[10px] font-medium flex items-center gap-1 transition-colors ${
+                          viewMode === 'code' ? 'bg-element-bg text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                        title="Code View"
+                      >
+                        <Code2 size={12} /> Code
+                      </button>
+                      <button 
+                        onClick={() => setViewMode('tree')}
+                        className={`p-1 rounded text-[10px] font-medium flex items-center gap-1 transition-colors ${
+                          viewMode === 'tree' ? 'bg-element-bg text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                        title="Tree View"
+                      >
+                        <Network size={12} /> Tree
+                      </button>
+                    </div>
+                  )}
+
                   {diffMode && (
                     <span className="text-[10px] bg-accent/20 text-accent px-2 rounded-full font-medium flex items-center gap-1">
                       <ArrowRightLeft size={10} /> Diff View
@@ -532,6 +766,10 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
                         );
                     })}
                   </div>
+              ) : viewMode === 'tree' && parsedObject ? (
+                  <div className="w-full h-full overflow-auto p-4 bg-app-bg select-text">
+                     <JsonTreeNode value={parsedObject} isLast={true} level={0} />
+                  </div>
               ) : (
                   <LineNumberTextarea
                     readOnly
@@ -544,6 +782,46 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
             </div>
           </div>
         </div>
+
+        {/* Info Status Bar (Bottom) */}
+        {stats && !diffMode && isValid && (
+            <div className="h-28 border-t border-border-base bg-app-bg p-4 flex flex-col gap-2 animate-slide-up-fade shrink-0">
+                <div className="flex items-center gap-2 text-text-secondary mb-1">
+                    <CheckCircle2 size={14} className="text-accent" />
+                    <span className="text-xs font-bold uppercase tracking-wider">JSON Info</span>
+                </div>
+                <div className="bg-panel-bg border border-border-base rounded-lg p-3 grid grid-cols-4 gap-4 text-xs">
+                    <div className="flex flex-col gap-1">
+                       <span className="text-text-secondary">Size</span>
+                       <span className="font-mono text-text-primary font-medium">{formatBytes(stats.sizeBytes)}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                       <span className="text-text-secondary">Lines</span>
+                       <span className="font-mono text-text-primary font-medium">{stats.lines}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                       <span className="text-text-secondary">Characters</span>
+                       <span className="font-mono text-text-primary font-medium">{stats.chars}</span>
+                    </div>
+                     <div className="flex flex-col gap-1">
+                       <span className="text-text-secondary">Max Depth</span>
+                       <span className="font-mono text-text-primary font-medium">{stats.maxDepth}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                       <span className="text-text-secondary">Keys</span>
+                       <span className="font-mono text-text-primary font-medium">{stats.keys}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                       <span className="text-text-secondary">Objects</span>
+                       <span className="font-mono text-text-primary font-medium">{stats.objects}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                       <span className="text-text-secondary">Arrays</span>
+                       <span className="font-mono text-text-primary font-medium">{stats.arrays}</span>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* Debug / Error Panel (VS Code Style) */}
         {!isValid && errorDetails && (
