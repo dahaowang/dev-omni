@@ -574,7 +574,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
           
           {/* Left Pane: Input */}
           <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
-            <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center justify-between h-8 mb-2 px-1 shrink-0">
               <div className="flex items-center gap-2">
                  <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Input</span>
                  {diffMode && <span className="text-[10px] bg-accent/10 text-accent px-2 rounded-full font-medium">Click to Edit</span>}
@@ -629,7 +629,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
 
           {/* Right Pane: Output */}
           <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
-            <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center justify-between h-8 mb-2 px-1 shrink-0">
               <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Output</span>
                   
