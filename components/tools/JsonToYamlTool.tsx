@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 // @ts-ignore
 import { load, dump } from 'js-yaml';
+import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
 interface JsonToYamlToolProps {
   isSidebarOpen: boolean;
@@ -148,12 +149,12 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
           <div className={`flex-1 bg-panel-bg rounded-lg border overflow-hidden transition-colors ${
             error ? 'border-red-900/50' : 'border-border-base focus-within:border-accent'
           }`}>
-            <textarea
+            <LineNumberTextarea
               spellCheck={false}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
               placeholder={mode === 'json2yaml' ? 'Paste JSON here...' : 'Paste YAML here...'}
+              className="text-text-primary placeholder-text-secondary"
             />
           </div>
           {error && <div className="text-xs text-red-400 mt-2 ml-1 truncate">{error}</div>}
@@ -171,12 +172,12 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
              <span className="text-sm font-medium">{mode === 'json2yaml' ? 'YAML Output' : 'JSON Output'}</span>
           </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
-            <textarea
+            <LineNumberTextarea
               readOnly
               spellCheck={false}
               value={output}
-              className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-accent placeholder-text-secondary"
               placeholder={mode === 'json2yaml' ? 'YAML result...' : 'JSON result...'}
+              className="text-accent placeholder-text-secondary"
             />
             
             {/* Copy Button */}

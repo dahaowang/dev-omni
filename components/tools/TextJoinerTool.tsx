@@ -8,7 +8,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine
 } from 'lucide-react';
-import { ActionButton } from '../common/ActionButton';
+import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
 interface TextJoinerToolProps {
   isSidebarOpen: boolean;
@@ -66,9 +66,6 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
 
     } else {
       // Split by delimiter, join by newline
-      // Handle special case for 'new line' delimiter if user inputs escape seq? 
-      // For now, treat delimiter as literal string unless it's specifically \t which we handle via preset input
-      
       const parts = input.split(delimiter);
       
       const processed = parts.filter(part => {
@@ -221,12 +218,12 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
              </button>
           </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-            <textarea
+            <LineNumberTextarea
               spellCheck={false}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none placeholder-text-secondary"
               placeholder={mode === 'join' ? "Paste lines here..." : "Paste text to split here..."}
+              className="text-text-primary placeholder-text-secondary"
             />
           </div>
         </div>
@@ -244,11 +241,11 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
              </div>
           </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
-            <textarea
+            <LineNumberTextarea
               readOnly
               value={output}
-              className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none text-accent placeholder-text-secondary"
               placeholder="Result..."
+              className="text-accent placeholder-text-secondary"
             />
             {output && (
               <button 

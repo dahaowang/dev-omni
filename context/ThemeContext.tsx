@@ -7,11 +7,19 @@ export interface FontSettings {
   code: string;
 }
 
+export interface EditorSettings {
+  lineNumbers: boolean;
+  wordWrap: boolean;
+  miniMap: boolean;
+}
+
 interface ThemeContextType {
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
   fonts: FontSettings;
   setFonts: (fonts: FontSettings) => void;
+  editorSettings: EditorSettings;
+  setEditorSettings: (settings: EditorSettings) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -27,7 +35,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   // Initialize Fonts
-  // Defaulting to JetBrains Mono for a developer-centric aesthetic as requested
   const [fonts, setFonts] = useState<FontSettings>(() => {
     try {
       const saved = localStorage.getItem('devomni-fonts');
@@ -41,6 +48,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   });
 
+  // Initialize Editor Settings
+  const [editorSettings, setEditorSettings] = useState<EditorSettings>(() => {
+    try {
+      const saved = localStorage.getItem('devomni-editor-settings');
+      if (saved) return JSON.parse(saved);
+    } catch(e) {
+      // ignore
+    }
+    return {
+      lineNumbers: true,
+      wordWrap: true,
+      miniMap: false
+    };
+  });
+
   // Apply Theme
   useEffect(() => {
     const root = window.document.documentElement;
@@ -51,8 +73,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Apply Fonts
   useEffect(() => {
     const root = window.document.documentElement;
-    // Set CSS Variables
-    // Check if the font needs quotes (if it has spaces)
     const quote = (f: string) => f.includes(' ') ? `"${f}"` : f;
     
     root.style.setProperty('--font-interface', `${quote(fonts.interface)}, system-ui, sans-serif`);
@@ -61,8 +81,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('devomni-fonts', JSON.stringify(fonts));
   }, [fonts]);
 
+  // Save Editor Settings
+  useEffect(() => {
+    localStorage.setItem('devomni-editor-settings', JSON.stringify(editorSettings));
+  }, [editorSettings]);
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, fonts, setFonts }}>
+    <ThemeContext.Provider value={{ theme, setTheme, fonts, setFonts, editorSettings, setEditorSettings }}>
       {children}
     </ThemeContext.Provider>
   );

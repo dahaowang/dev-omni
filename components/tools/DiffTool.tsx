@@ -15,6 +15,7 @@ import {
   ScanText,
   Space
 } from 'lucide-react';
+import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
 interface DiffToolProps {
   isSidebarOpen: boolean;
@@ -444,10 +445,9 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
             <div className="flex-1 flex flex-col p-4 border-r border-border-base min-w-0">
                <div className="text-xs font-semibold text-text-secondary mb-2 uppercase tracking-wide">Original Text</div>
                <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-                 <textarea 
+                 <LineNumberTextarea 
                     value={original}
                     onChange={(e) => setOriginal(e.target.value)}
-                    className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none placeholder-text-secondary"
                     placeholder="Paste original text here..."
                     spellCheck={false}
                  />
@@ -458,10 +458,9 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
             <div className="flex-1 flex flex-col p-4 min-w-0">
                <div className="text-xs font-semibold text-text-secondary mb-2 uppercase tracking-wide">Modified Text</div>
                <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-                 <textarea 
+                 <LineNumberTextarea 
                     value={modified}
                     onChange={(e) => setModified(e.target.value)}
-                    className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none placeholder-text-secondary"
                     placeholder="Paste modified text here..."
                     spellCheck={false}
                  />

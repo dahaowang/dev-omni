@@ -7,6 +7,7 @@ import {
   Filter
 } from 'lucide-react';
 import { ActionButton } from '../common/ActionButton';
+import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
 interface DedupeToolProps {
   isSidebarOpen: boolean;
@@ -89,12 +90,12 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
              </button>
           </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden hover:border-border-hover transition-colors">
-            <textarea
+            <LineNumberTextarea
               spellCheck={false}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
               placeholder='Paste your list here (one item per line)...'
+              className="text-text-primary placeholder-text-secondary"
             />
           </div>
         </div>
@@ -108,12 +109,12 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
         <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-0">
           <div className="text-sm font-medium text-text-secondary mb-2 pl-1">Unique Lines</div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
-            <textarea
+            <LineNumberTextarea
               readOnly
               spellCheck={false}
               value={output}
-              className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
               placeholder='Unique lines will appear here...'
+              className="text-text-primary placeholder-text-secondary"
             />
             
             {/* Copy Button */}

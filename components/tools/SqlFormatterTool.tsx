@@ -7,6 +7,8 @@ import {
   Copy
 } from 'lucide-react';
 import { ActionButton } from '../common/ActionButton';
+import { LineNumberTextarea } from '../common/LineNumberTextarea';
+import { useTheme } from '../../context/ThemeContext';
 
 interface SqlFormatterToolProps {
   isSidebarOpen: boolean;
@@ -50,14 +52,6 @@ const formatSql = (sql: string): string => {
   let text = sql.replace(/\s+/g, ' ').trim();
   
   // 2. Insert newlines around major keywords and handling delimiters
-  // We'll process by splitting tokens. This is a heuristic approach.
-  
-  // Escape special regex characters in keywords
-  const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  
-  // Pre-process: Add spaces around symbols to ensure tokenization
-  text = text.replace(/([(),;])/g, ' $1 ');
-  
   const tokens = text.split(/\s+/);
   let formatted = '';
   let indentLevel = 0;
@@ -72,12 +66,18 @@ const formatSql = (sql: string): string => {
     currentLine = '';
   };
 
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
-    const upper = token.toUpperCase();
-    const nextToken = tokens[i + 1]?.toUpperCase();
+  // Pre-process: Add spaces around symbols to ensure tokenization
+  text = text.replace(/([(),;])/g, ' $1 ');
+  const splitTokens = text.split(/\s+/);
 
-    // Check for multi-word keywords (e.g. ORDER BY, GROUP BY, INSERT INTO)
+  for (let i = 0; i < splitTokens.length; i++) {
+    const token = splitTokens[i];
+    if(!token) continue;
+    
+    const upper = token.toUpperCase();
+    const nextToken = splitTokens[i + 1]?.toUpperCase();
+
+    // Check for multi-word keywords
     let compoundToken = upper;
     let skipNext = 0;
     
@@ -99,7 +99,7 @@ const formatSql = (sql: string): string => {
       i += skipNext;
     } else if (KEYWORDS_INDENT.includes(compoundToken)) {
       flushLine();
-      currentLine = '  ' + compoundToken + ' '; // Extra internal indent for joins
+      currentLine = '  ' + compoundToken + ' '; 
       i += skipNext;
     } else if (token === '(') {
       currentLine += token;
@@ -116,11 +116,8 @@ const formatSql = (sql: string): string => {
       currentLine += token;
       flushLine();
     } else if (upper === 'ON' || upper === 'AND' || upper === 'OR') {
-      // Logic operators often look better on new lines if line is long, 
-      // but for simple formatting, let's keep them inline unless we want strict stacking.
-      // Let's stack AND/OR for cleaner WHERE clauses
       flushLine();
-      currentLine = '  ' + token + ' '; // Indent logic ops
+      currentLine = '  ' + token + ' '; 
     } else {
       currentLine += token + ' ';
     }
@@ -135,8 +132,7 @@ const formatSql = (sql: string): string => {
 const SqlHighlight: React.FC<{ code: string }> = ({ code }) => {
   if (!code) return null;
 
-  // Simple tokenizer for highlighting
-  const parts = code.split(/(\s+|[(),;])/); // Split by whitespace and delimiters
+  const parts = code.split(/(\s+|[(),;])/); 
 
   return (
     <code className="font-mono text-sm leading-6">
@@ -148,7 +144,7 @@ const SqlHighlight: React.FC<{ code: string }> = ({ code }) => {
           colorClass = 'text-accent font-semibold';
         } else if (FUNCTIONS.some(f => upper.startsWith(f))) {
           colorClass = 'text-yellow-400';
-        } else if (/^['"`].*['"`]$/.test(part)) { // Basic string detection
+        } else if (/^['"`].*['"`]$/.test(part)) {
           colorClass = 'text-green-400';
         } else if (/^\d+$/.test(part)) {
           colorClass = 'text-orange-400';
@@ -171,11 +167,11 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
   const [output, setOutput] = useState<string>('');
   const [dialect, setDialect] = useState<Dialect>('Standard');
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const { editorSettings } = useTheme();
 
   useEffect(() => {
     if (initialValue) {
       setInput(initialValue);
-      // Auto format when smart paste injects value
       const formatted = formatSql(initialValue);
       setOutput(formatted);
     }
@@ -200,6 +196,8 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
     setInput('');
     setOutput('');
   };
+
+  const lineCount = output ? output.split('\n').length : 0;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
@@ -255,12 +253,12 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
              </button>
           </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-            <textarea
+            <LineNumberTextarea
               spellCheck={false}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
               placeholder='SELECT * FROM table...'
+              className="text-text-primary placeholder-text-secondary"
             />
           </div>
         </div>
@@ -275,15 +273,26 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
           <div className="text-sm font-medium text-text-secondary mb-2 pl-1">Formatted SQL</div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors flex flex-col">
             
-            {/* Syntax Highlighted Output Container */}
-            <div className="flex-1 overflow-auto p-4 w-full h-full bg-transparent">
-              {output ? (
-                <div className="whitespace-pre">
-                  <SqlHighlight code={output} />
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* Line Numbers for Output */}
+                {editorSettings.lineNumbers && output && (
+                  <div className="bg-sidebar-bg/30 text-text-secondary/30 text-right pr-3 pl-2 pt-4 select-none overflow-hidden border-r border-border-base shrink-0 min-w-[3rem] font-mono text-sm leading-6">
+                     {Array.from({length: Math.max(1, lineCount)}).map((_, i) => (
+                        <div key={i}>{i + 1}</div>
+                     ))}
+                  </div>
+                )}
+
+                {/* Syntax Highlighted Output Container */}
+                <div className="flex-1 overflow-auto p-4 w-full h-full bg-transparent">
+                  {output ? (
+                    <div className="whitespace-pre">
+                      <SqlHighlight code={output} />
+                    </div>
+                  ) : (
+                    <span className="font-mono text-sm text-text-secondary opacity-50 select-none">Result will appear here...</span>
+                  )}
                 </div>
-              ) : (
-                <span className="font-mono text-sm text-text-secondary opacity-50 select-none">Result will appear here...</span>
-              )}
             </div>
             
             {/* Copy Button */}

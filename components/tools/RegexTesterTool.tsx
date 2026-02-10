@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Check
 } from 'lucide-react';
+import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
 interface RegexTesterToolProps {
   isSidebarOpen: boolean;
@@ -213,7 +214,7 @@ export const RegexTesterTool: React.FC<RegexTesterToolProps> = ({ isSidebarOpen,
                     className={`h-[42px] px-3 flex items-center gap-2 bg-input-bg border rounded-md transition-colors min-w-[100px] justify-between ${
                         isFlagsOpen ? 'border-accent ring-1 ring-accent/20' : 'border-border-base hover:border-accent/50'
                     }`}
-                 >
+                  >
                     <span className="font-mono text-sm text-accent">{flags ? `/${flags}` : '/'}</span>
                     <ChevronDown size={14} className={`text-text-secondary transition-transform duration-200 ${isFlagsOpen ? 'rotate-180' : ''}`} />
                  </button>
@@ -266,12 +267,12 @@ export const RegexTesterTool: React.FC<RegexTesterToolProps> = ({ isSidebarOpen,
                  </button>
               </div>
               <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-                 <textarea 
+                 <LineNumberTextarea
                    value={testText}
                    onChange={(e) => setTestText(e.target.value)}
-                   className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 text-text-primary focus:outline-none placeholder-text-secondary"
                    placeholder="Enter text to test regex against..."
                    spellCheck={false}
+                   className="text-text-primary placeholder-text-secondary"
                  />
               </div>
            </div>

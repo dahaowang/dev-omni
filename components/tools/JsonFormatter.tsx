@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 // @ts-ignore
 import { jsonrepair } from 'jsonrepair';
+import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
 interface JsonFormatterProps {
   isSidebarOpen: boolean;
@@ -269,9 +270,6 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       // Auto-populate output if valid
       setOutput(JSON.stringify(parsed, null, 2));
       
-      // If we are currently in diff mode but the input is now valid, 
-      // we likely fixed it, so we can exit diff mode (optional UX choice, but requested flow implies real-time updates)
-      // We'll keep diff mode strictly for the "Repair" action comparison, but update validity.
     } catch (e) {
       setIsValid(false);
       setErrorDetails(parseJsonError(e as Error, input));
@@ -306,10 +304,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
 
   const handleRepair = () => {
     try {
-      // Use jsonrepair to fix the JSON string
       const repaired = jsonrepair(input);
-      
-      // Parse it to ensure it's valid object, then stringify to format it nicely
       const parsed = JSON.parse(repaired);
       const formatted = JSON.stringify(parsed, null, 2);
       
@@ -317,7 +312,6 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       setOutput(formatted);
       setDiffMode(true);
     } catch (e) {
-      // jsonrepair failed or JSON.parse failed
       setErrorDetails({ message: "Failed to repair automatically: " + (e as Error).message, line: 0, column: 0 });
     }
   };
@@ -478,12 +472,12 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
                     })}
                   </div>
               ) : (
-                  <textarea
+                  <LineNumberTextarea
                     spellCheck={false}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
                     placeholder='Paste JSON here...'
+                    className="text-text-primary placeholder-text-secondary"
                   />
               )}
             </div>
@@ -539,12 +533,12 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
                     })}
                   </div>
               ) : (
-                  <textarea
+                  <LineNumberTextarea
                     readOnly
                     spellCheck={false}
                     value={output}
-                    className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-accent placeholder-text-secondary"
                     placeholder='Result will appear here...'
+                    className="text-accent placeholder-text-secondary"
                   />
               )}
             </div>

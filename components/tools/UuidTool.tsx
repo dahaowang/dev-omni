@@ -9,6 +9,7 @@ import {
   Minus,
   Plus
 } from 'lucide-react';
+import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
 interface UuidToolProps {
   isSidebarOpen: boolean;
@@ -31,11 +32,9 @@ export const UuidTool: React.FC<UuidToolProps> = ({ isSidebarOpen, toggleSidebar
   }, [quantity, hyphens, uppercase, braces]);
 
   const getSingleUUID = () => {
-    // Robust UUID generation with fallback
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
       return crypto.randomUUID();
     }
-    // Fallback for environments where crypto.randomUUID is not available (older browsers/contexts)
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
@@ -43,7 +42,6 @@ export const UuidTool: React.FC<UuidToolProps> = ({ isSidebarOpen, toggleSidebar
   };
 
   const generateUUIDs = () => {
-    // Basic validation for quantity
     const count = Math.max(1, Math.min(2000, quantity));
     
     let result = [];
@@ -101,14 +99,14 @@ export const UuidTool: React.FC<UuidToolProps> = ({ isSidebarOpen, toggleSidebar
         </div>
       </div>
 
-      {/* Content Container (Non-scrolling wrapper to allow flex-1 children to scroll) */}
+      {/* Content Container */}
       <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden">
         <div className="max-w-6xl mx-auto w-full flex flex-col h-full gap-4">
           
-          {/* Top: Compact Configuration Panel */}
+          {/* Top: Configuration */}
           <div className="shrink-0 bg-panel-bg border border-border-base rounded-lg p-4 shadow-sm flex flex-col md:flex-row gap-6 md:items-center justify-between">
              
-             {/* Quantity Control */}
+             {/* Quantity */}
              <div className="flex-1 flex items-center gap-4 min-w-0">
                 <div className="flex items-center gap-2 text-text-secondary shrink-0">
                    <Settings2 size={16} />
@@ -201,12 +199,12 @@ export const UuidTool: React.FC<UuidToolProps> = ({ isSidebarOpen, toggleSidebar
              </div>
 
              {/* Text Area */}
-             <div className="flex-1 relative bg-app-bg group">
-                <textarea
+             <div className="flex-1 relative bg-app-bg group overflow-hidden">
+                <LineNumberTextarea
                   readOnly
                   value={output}
-                  className="absolute inset-0 w-full h-full resize-none p-4 font-mono text-sm leading-relaxed text-text-primary focus:outline-none bg-transparent"
                   spellCheck={false}
+                  className="text-text-primary"
                 />
              </div>
           </div>

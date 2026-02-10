@@ -62,12 +62,16 @@ const CODE_FONTS = [
 ];
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { theme, setTheme, fonts, setFonts } = useTheme();
+  const { theme, setTheme, fonts, setFonts, editorSettings, setEditorSettings } = useTheme();
 
   if (!isOpen) return null;
 
   const handleFontChange = (type: keyof FontSettings, value: string) => {
     setFonts({ ...fonts, [type]: value });
+  };
+
+  const toggleEditorSetting = (key: keyof typeof editorSettings) => {
+    setEditorSettings({ ...editorSettings, [key]: !editorSettings[key] });
   };
 
   return (
@@ -156,15 +160,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             <SettingsSection title="Editor" icon={<Type size={18} />}>
                <div className="flex items-center justify-between">
                   <span className="text-sm text-text-secondary font-medium">Line Numbers</span>
-                  <input type="checkbox" defaultChecked className="toggle-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    checked={editorSettings.lineNumbers}
+                    onChange={() => toggleEditorSetting('lineNumbers')}
+                    className="toggle-checkbox" 
+                  />
                </div>
                <div className="flex items-center justify-between">
                   <span className="text-sm text-text-secondary font-medium">Word Wrap</span>
-                  <input type="checkbox" className="toggle-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    checked={editorSettings.wordWrap}
+                    onChange={() => toggleEditorSetting('wordWrap')}
+                    className="toggle-checkbox" 
+                  />
                </div>
                <div className="flex items-center justify-between">
                   <span className="text-sm text-text-secondary font-medium">Mini Map</span>
-                  <input type="checkbox" className="toggle-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    checked={editorSettings.miniMap}
+                    onChange={() => toggleEditorSetting('miniMap')}
+                    className="toggle-checkbox" 
+                  />
                </div>
             </SettingsSection>
 
