@@ -17,7 +17,7 @@
     "jsqr": "^1.4.0",
     "cron-parser": "^4.9.0",
     "js-yaml": "^4.1.0",
-    "jsonrepair": "^3.6.0"
+    "jsonrepair": "^3.13.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",

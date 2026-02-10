@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Trash2, 
   CheckCircle2, 
@@ -6,7 +6,6 @@ import {
   PanelLeft,
   Filter
 } from 'lucide-react';
-import { ActionButton } from '../common/ActionButton';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
 interface DedupeToolProps {
@@ -21,7 +20,8 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
   const [stats, setStats] = useState({ total: 0, unique: 0, removed: 0 });
   const [copyFeedback, setCopyFeedback] = useState(false);
 
-  const handleDedupe = () => {
+  // Automatic execution when input changes
+  useEffect(() => {
     if (!input) {
       setOutput('');
       setStats({ total: 0, unique: 0, removed: 0 });
@@ -29,6 +29,8 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
     }
 
     const lines = input.split(/\r?\n/);
+    // Filter out empty last line if it exists to avoid false count? 
+    // Standard dedupe usually treats empty lines as valid duplicates.
     const uniqueSet = new Set(lines);
     const uniqueLines = Array.from(uniqueSet);
     const result = uniqueLines.join('\n');
@@ -39,7 +41,7 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
       unique: uniqueLines.length,
       removed: lines.length - uniqueLines.length
     });
-  };
+  }, [input]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(output);
@@ -49,8 +51,6 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
 
   const handleClear = () => {
     setInput('');
-    setOutput('');
-    setStats({ total: 0, unique: 0, removed: 0 });
   };
 
   return (
@@ -79,11 +79,11 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         
         {/* Input Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-0">
-          <div className="flex items-center justify-between mb-2 pl-1 pr-4">
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
+          <div className="flex items-center justify-between mb-2 px-1">
              <div className="text-sm font-medium text-text-secondary">Input List</div>
              <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
                <Trash2 size={12} /> Clear
@@ -100,14 +100,20 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
           </div>
         </div>
 
-        {/* Action Bar */}
-        <div className="w-16 flex flex-col items-center justify-center space-y-4 px-2 pt-8">
-           <ActionButton onClick={handleDedupe} icon={<Filter size={18} />} label="Dedupe" />
-        </div>
-
         {/* Output Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-0">
-          <div className="text-sm font-medium text-text-secondary mb-2 pl-1">Unique Lines</div>
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
+          <div className="flex items-center justify-between mb-2 px-1">
+             <div className="text-sm font-medium text-text-secondary">Unique Lines</div>
+             {output && (
+              <button 
+                onClick={handleCopy}
+                className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              >
+                {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
+                <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
+              </button>
+            )}
+          </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
             <LineNumberTextarea
               readOnly
@@ -116,17 +122,6 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
               placeholder='Unique lines will appear here...'
               className="text-text-primary placeholder-text-secondary"
             />
-            
-            {/* Copy Button */}
-            {output && (
-              <button 
-                onClick={handleCopy}
-                className="absolute bottom-4 right-4 bg-element-bg hover:brightness-110 text-text-primary px-4 py-2 rounded-md shadow-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95"
-              >
-                {copyFeedback ? <CheckCircle2 size={16} className="text-green-500"/> : <Copy size={16} />}
-                <span className="text-sm font-medium">{copyFeedback ? 'Copied!' : 'Copy Result'}</span>
-              </button>
-            )}
           </div>
         </div>
       </div>

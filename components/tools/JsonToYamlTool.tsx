@@ -6,7 +6,6 @@ import {
   CheckCircle2, 
   FileJson, 
   FileCode,
-  ArrowRight,
   ArrowRightLeft
 } from 'lucide-react';
 // @ts-ignore
@@ -133,11 +132,11 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         
         {/* Input Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-0">
-          <div className="flex items-center justify-between mb-2 pl-1 pr-4">
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
+          <div className="flex items-center justify-between mb-2 px-1">
              <div className="flex items-center space-x-2 text-text-secondary">
                 {mode === 'json2yaml' ? <FileJson size={14} /> : <FileCode size={14} />}
                 <span className="text-sm font-medium">{mode === 'json2yaml' ? 'JSON Input' : 'YAML Input'}</span>
@@ -160,16 +159,22 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
           {error && <div className="text-xs text-red-400 mt-2 ml-1 truncate">{error}</div>}
         </div>
 
-        {/* Action Icon Spacer */}
-        <div className="w-12 flex flex-col items-center justify-center pt-8 text-text-secondary opacity-50">
-           <ArrowRight size={24} />
-        </div>
-
         {/* Output Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-0">
-          <div className="flex items-center space-x-2 text-text-secondary mb-2 pl-1">
-             {mode === 'json2yaml' ? <FileCode size={14} /> : <FileJson size={14} />}
-             <span className="text-sm font-medium">{mode === 'json2yaml' ? 'YAML Output' : 'JSON Output'}</span>
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
+          <div className="flex items-center justify-between mb-2 px-1">
+             <div className="flex items-center space-x-2 text-text-secondary">
+                {mode === 'json2yaml' ? <FileCode size={14} /> : <FileJson size={14} />}
+                <span className="text-sm font-medium">{mode === 'json2yaml' ? 'YAML Output' : 'JSON Output'}</span>
+             </div>
+             {output && !error && (
+              <button 
+                onClick={handleCopy}
+                className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              >
+                {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
+                <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
+              </button>
+            )}
           </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
             <LineNumberTextarea
@@ -179,17 +184,6 @@ export const JsonToYamlTool: React.FC<JsonToYamlToolProps> = ({ isSidebarOpen, t
               placeholder={mode === 'json2yaml' ? 'YAML result...' : 'JSON result...'}
               className="text-accent placeholder-text-secondary"
             />
-            
-            {/* Copy Button */}
-            {output && !error && (
-              <button 
-                onClick={handleCopy}
-                className="absolute bottom-4 right-4 bg-element-bg hover:brightness-110 text-text-primary px-4 py-2 rounded-md shadow-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95"
-              >
-                {copyFeedback ? <CheckCircle2 size={16} className="text-green-500"/> : <Copy size={16} />}
-                <span className="text-sm font-medium">{copyFeedback ? 'Copied' : 'Copy'}</span>
-              </button>
-            )}
           </div>
         </div>
       </div>

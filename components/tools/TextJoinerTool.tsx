@@ -4,7 +4,6 @@ import {
   Trash2, 
   Copy, 
   CheckCircle2, 
-  ArrowRightLeft,
   ArrowDownToLine,
   ArrowUpFromLine
 } from 'lucide-react';
@@ -205,10 +204,10 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden p-4 gap-4">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         
         {/* Input */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
           <div className="flex items-center justify-between mb-2 px-1">
              <div className="text-sm font-medium text-text-secondary">
                Input {mode === 'join' ? '(List)' : '(Single Line)'}
@@ -228,17 +227,21 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
           </div>
         </div>
 
-        {/* Arrow visual */}
-        <div className="flex flex-col justify-center items-center text-border-base">
-           {mode === 'join' ? <ArrowRightLeft size={24} /> : <ArrowRightLeft size={24} className="rotate-90 md:rotate-0" />}
-        </div>
-
         {/* Output */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
           <div className="flex items-center justify-between mb-2 px-1">
              <div className="text-sm font-medium text-text-secondary">
                Output {mode === 'join' ? '(Single Line)' : '(List)'}
              </div>
+             {output && (
+              <button 
+                onClick={handleCopy}
+                className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              >
+                {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
+                <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
+              </button>
+            )}
           </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
             <LineNumberTextarea
@@ -247,15 +250,6 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
               placeholder="Result..."
               className="text-accent placeholder-text-secondary"
             />
-            {output && (
-              <button 
-                onClick={handleCopy}
-                className="absolute bottom-4 right-4 bg-element-bg hover:brightness-110 text-text-primary px-4 py-2 rounded-md shadow-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95"
-              >
-                {copyFeedback ? <CheckCircle2 size={16} className="text-green-500"/> : <Copy size={16} />}
-                <span className="text-sm font-medium">{copyFeedback ? 'Copied' : 'Copy'}</span>
-              </button>
-            )}
           </div>
         </div>
 

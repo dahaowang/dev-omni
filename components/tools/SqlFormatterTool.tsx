@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   PanelLeft, 
   Trash2, 
-  ArrowRight, 
   CheckCircle2, 
   Copy
 } from 'lucide-react';
-import { ActionButton } from '../common/ActionButton';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -42,17 +40,11 @@ const FUNCTIONS = [
   "COUNT", "SUM", "AVG", "MIN", "MAX", "COALESCE", "CONCAT", "SUBSTRING", "CAST", "NOW", "DATE"
 ];
 
-const isKeyword = (word: string) => {
-  const upper = word.toUpperCase();
-  return KEYWORDS_NEWLINE.includes(upper) || KEYWORDS_INDENT.includes(upper) || KEYWORDS_OTHER.includes(upper);
-};
-
 const formatSql = (sql: string): string => {
   // 1. Normalize whitespace
   let text = sql.replace(/\s+/g, ' ').trim();
   
   // 2. Insert newlines around major keywords and handling delimiters
-  const tokens = text.split(/\s+/);
   let formatted = '';
   let indentLevel = 0;
   const INDENT = '  ';
@@ -169,22 +161,23 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
   const [copyFeedback, setCopyFeedback] = useState(false);
   const { editorSettings } = useTheme();
 
+  // Initialize
   useEffect(() => {
     if (initialValue) {
       setInput(initialValue);
-      const formatted = formatSql(initialValue);
-      setOutput(formatted);
     }
   }, [initialValue]);
 
-  const handleFormat = () => {
+  // Automatic Formatting Effect
+  useEffect(() => {
     if (!input.trim()) {
       setOutput('');
       return;
     }
+    // Perform formatting whenever input or dialect changes
     const formatted = formatSql(input);
     setOutput(formatted);
-  };
+  }, [input, dialect]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(output);
@@ -242,11 +235,11 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         
         {/* Input Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-0">
-          <div className="flex items-center justify-between mb-2 pl-1 pr-4">
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
+          <div className="flex items-center justify-between mb-2 px-1">
              <div className="text-sm font-medium text-text-secondary">Raw SQL</div>
              <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
                <Trash2 size={12} /> Clear
@@ -263,14 +256,20 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
           </div>
         </div>
 
-        {/* Action Bar */}
-        <div className="w-16 flex flex-col items-center justify-center space-y-4 px-2 pt-8">
-           <ActionButton onClick={handleFormat} icon={<ArrowRight size={18} />} label="Format" />
-        </div>
-
         {/* Output Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-0">
-          <div className="text-sm font-medium text-text-secondary mb-2 pl-1">Formatted SQL</div>
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
+          <div className="flex items-center justify-between mb-2 px-1">
+             <div className="text-sm font-medium text-text-secondary">Formatted SQL</div>
+             {output && (
+              <button 
+                onClick={handleCopy}
+                className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              >
+                {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
+                <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
+              </button>
+            )}
+          </div>
           <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors flex flex-col">
             
             <div className="flex-1 flex overflow-hidden relative">
@@ -294,17 +293,6 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
                   )}
                 </div>
             </div>
-            
-            {/* Copy Button */}
-            {output && (
-              <button 
-                onClick={handleCopy}
-                className="absolute bottom-4 right-4 bg-element-bg hover:brightness-110 text-text-primary px-4 py-2 rounded-md shadow-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95"
-              >
-                {copyFeedback ? <CheckCircle2 size={16} className="text-green-500"/> : <Copy size={16} />}
-                <span className="text-sm font-medium">{copyFeedback ? 'Copied!' : 'Copy'}</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
