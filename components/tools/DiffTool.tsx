@@ -13,7 +13,10 @@ import {
   ChevronUp,
   ChevronDown,
   ScanText,
-  Space
+  Space,
+  ArrowDownAZ,
+  ArrowUpAZ,
+  List
 } from 'lucide-react';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
 
@@ -252,6 +255,7 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
   // Options
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
   const [showInlineDiff, setShowInlineDiff] = useState(true);
+  const [sortMode, setSortMode] = useState<'none' | 'asc' | 'desc'>('none');
 
   // Debounce State
   const [debouncedOriginal, setDebouncedOriginal] = useState('');
@@ -280,8 +284,18 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
   const { rows, stats } = useMemo(() => {
     if (mode !== 'view') return { rows: [], stats: { added: 0, removed: 0, total: 0 } };
     
-    // Use debounced values here
-    const linearDiff = computeLineDiff(debouncedOriginal, debouncedModified, ignoreWhitespace);
+    let text1 = debouncedOriginal;
+    let text2 = debouncedModified;
+
+    // Process sorting
+    if (sortMode !== 'none') {
+      const sortFn = (a: string, b: string) => sortMode === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+      text1 = text1.split(/\r?\n/).sort(sortFn).join('\n');
+      text2 = text2.split(/\r?\n/).sort(sortFn).join('\n');
+    }
+
+    // Use debounced (and optionally sorted) values here
+    const linearDiff = computeLineDiff(text1, text2, ignoreWhitespace);
     const calculatedRows = processDiffToRows(linearDiff);
     
     const added = linearDiff.filter(l => l.type === 'added').length;
@@ -289,7 +303,7 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
     const total = linearDiff.length;
 
     return { rows: calculatedRows, stats: { added, removed, total } };
-  }, [debouncedOriginal, debouncedModified, mode, ignoreWhitespace]);
+  }, [debouncedOriginal, debouncedModified, mode, ignoreWhitespace, sortMode]);
 
   // Compute chunks of changes for navigation
   const diffChunks = useMemo(() => {
@@ -405,6 +419,31 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
              </>
            ) : (
              <>
+                {/* Sort Options */}
+               <div className="flex items-center space-x-1 mr-2 bg-panel-bg rounded-md p-1 border border-border-base">
+                 <button
+                   onClick={() => setSortMode('none')}
+                   className={`p-1.5 rounded transition-colors ${sortMode === 'none' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+                   title="No Sorting (Original Order)"
+                 >
+                   <List size={14} />
+                 </button>
+                 <button
+                   onClick={() => setSortMode('asc')}
+                   className={`p-1.5 rounded transition-colors ${sortMode === 'asc' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+                   title="Sort Lines Ascending (A-Z)"
+                 >
+                   <ArrowDownAZ size={14} />
+                 </button>
+                 <button
+                   onClick={() => setSortMode('desc')}
+                   className={`p-1.5 rounded transition-colors ${sortMode === 'desc' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+                   title="Sort Lines Descending (Z-A)"
+                 >
+                   <ArrowUpAZ size={14} />
+                 </button>
+               </div>
+
                <div className="flex items-center space-x-1 mr-2 bg-panel-bg rounded-md p-1 border border-border-base">
                  <button
                    onClick={() => setIgnoreWhitespace(!ignoreWhitespace)}
