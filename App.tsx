@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ToolType } from './types';
 import { Sidebar } from './components/Sidebar';
 import { JsonFormatter } from './components/tools/JsonFormatter';
@@ -76,6 +76,9 @@ const App: React.FC = () => {
   const [smartPasteData, setSmartPasteData] = useState<{ tool: ToolType, content: string } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
+  // Track last processed clipboard content to prevent loops/re-pasting same content on focus
+  const lastProcessedClipboard = useRef<string>('');
+  
   // Favorites State with Persistence
   const [favorites, setFavorites] = useState<ToolType[]>(() => {
     try {
@@ -90,27 +93,51 @@ const App: React.FC = () => {
     localStorage.setItem('devomni-favorites', JSON.stringify(favorites));
   }, [favorites]);
 
-  // Initial Smart Paste Check on Mount
-  useEffect(() => {
-    handleSmartPaste();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleSmartPaste = async () => {
+  const handleSmartPaste = async (isAutoTrigger: boolean = false) => {
     try {
+      // In browser/Electron, readText might require focus. 
+      // When this is triggered by 'focus' event, we naturally have focus.
       const text = await navigator.clipboard.readText();
+      
+      if (!text || !text.trim()) return;
+
+      // If triggered automatically (by focus/startup), check if we already handled this exact text
+      // This prevents overwriting the user's work if they just Alt-Tabbed out and back without copying anything new.
+      if (isAutoTrigger && text === lastProcessedClipboard.current) {
+        return;
+      }
+
       const result = analyzeClipboard(text);
       if (result) {
-        // Only switch if different or same tool but needs content refresh
+        // Update the history tracker
+        lastProcessedClipboard.current = text;
+        
+        // Switch tool and inject data
         setActiveTool(result.tool);
         setSmartPasteData({ tool: result.tool, content: result.content });
-        setToastMessage(`Detected ${result.label} - Auto Switched`);
+        setToastMessage(`Smart Paste: Detected ${result.label}`);
+        
+        // Auto-dismiss toast
         setTimeout(() => setToastMessage(null), 3000);
       }
     } catch (err) {
-      console.warn('Clipboard access denied or empty', err);
+      // Clipboard might be empty or permission denied
+      // console.warn('Clipboard check failed', err);
     }
   };
+
+  // Initial Smart Paste Check on Mount
+  useEffect(() => {
+    handleSmartPaste(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Check clipboard when window gains focus
+  useEffect(() => {
+    const onFocus = () => handleSmartPaste(true);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   const toggleFavorite = (toolId: ToolType) => {
     setFavorites(prev => 
@@ -190,7 +217,7 @@ const App: React.FC = () => {
           onSettingsClick={() => setIsSettingsOpen(true)}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
-          onSmartPaste={handleSmartPaste}
+          onSmartPaste={() => handleSmartPaste(false)} // Manual trigger always processes
         />
         
         {/* Tool Container with Animation Key */}
