@@ -12,6 +12,7 @@ interface ColorPickerToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  initialValue?: string;
 }
 
 interface ColorFormat {
@@ -86,11 +87,17 @@ const hslToHex = (h: number, s: number, l: number) => {
 
 type PaletteType = 'analogous' | 'monochromatic' | 'triadic' | 'complementary' | 'split-complementary';
 
-export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
   const [color, setColor] = useState<string>('#6366f1'); // Default to Accent Color
   const [paletteType, setPaletteType] = useState<PaletteType>('analogous');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (initialValue) {
+      setColor(initialValue);
+    }
+  }, [initialValue]);
 
   // Derived values
   const rgb = hexToRgb(color);

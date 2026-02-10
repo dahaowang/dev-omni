@@ -7,6 +7,7 @@ interface CronToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  initialValue?: string;
 }
 
 type Tab = 'minute' | 'hour' | 'day' | 'month' | 'week';
@@ -28,7 +29,7 @@ const PRESETS = [
   { label: 'Mon-Fri at 9 AM', value: '0 9 * * 1-5' },
 ];
 
-export const CronTool: React.FC<CronToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const CronTool: React.FC<CronToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
   const [expression, setExpression] = useState('0 10 * * 1-5'); // Default: 10 AM Mon-Fri
   const [nextRuns, setNextRuns] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,13 @@ export const CronTool: React.FC<CronToolProps> = ({ isSidebarOpen, toggleSidebar
     month: '*',
     dayOfWeek: '1-5'
   });
+
+  // Handle Smart Paste
+  useEffect(() => {
+    if (initialValue) {
+        setExpression(initialValue);
+    }
+  }, [initialValue]);
 
   // Effect: When Expression Changes -> Calculate Next Runs
   useEffect(() => {

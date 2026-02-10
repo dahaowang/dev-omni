@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PanelLeft, 
   Trash2, 
@@ -12,6 +12,7 @@ interface SqlFormatterToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  initialValue?: string;
 }
 
 type Dialect = 'Standard' | 'PostgreSQL' | 'MySQL' | 'SQLite';
@@ -165,11 +166,20 @@ const SqlHighlight: React.FC<{ code: string }> = ({ code }) => {
   );
 };
 
-export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
   const [dialect, setDialect] = useState<Dialect>('Standard');
   const [copyFeedback, setCopyFeedback] = useState(false);
+
+  useEffect(() => {
+    if (initialValue) {
+      setInput(initialValue);
+      // Auto format when smart paste injects value
+      const formatted = formatSql(initialValue);
+      setOutput(formatted);
+    }
+  }, [initialValue]);
 
   const handleFormat = () => {
     if (!input.trim()) {

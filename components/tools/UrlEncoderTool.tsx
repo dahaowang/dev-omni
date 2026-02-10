@@ -11,16 +11,23 @@ interface UrlEncoderToolProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   toolLabel: string;
+  initialValue?: string;
 }
 
 type Mode = 'encode' | 'decode';
 
-export const UrlEncoderTool: React.FC<UrlEncoderToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+export const UrlEncoderTool: React.FC<UrlEncoderToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [mode, setMode] = useState<Mode>('encode');
   const [error, setError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
+
+  useEffect(() => {
+    if (initialValue) {
+      setInput(initialValue);
+    }
+  }, [initialValue]);
 
   useEffect(() => {
     if (!input) {
