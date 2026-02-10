@@ -1,25 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  ArrowRight, 
-  Minimize2, 
-  Maximize2, 
+  PanelLeft, 
   Trash2, 
   CheckCircle2, 
-  Copy, 
-  AlertCircle,
-  PanelLeft,
-  AlertTriangle,
-  Check,
-  ChevronRight,
-  ChevronDown,
-  Code2,
-  ListTree,
-  ChevronsDown,
-  ChevronsUp
+  XCircle,
+  AlignLeft,
+  Minimize2,
+  ArrowDownAZ,
+  Wrench,
+  Copy,
+  ArrowRightLeft
 } from 'lucide-react';
-import { ActionButton } from '../common/ActionButton';
-
-// --- Types & Interfaces ---
 
 interface JsonFormatterProps {
   isSidebarOpen: boolean;
@@ -28,319 +19,197 @@ interface JsonFormatterProps {
   initialValue?: string;
 }
 
-interface JsonNodeProps {
-  name?: string;
-  value: any;
-  isLast: boolean;
-  level: number;
-  expandDepth: number;
-  // Used to force re-sync with expandDepth when global controls are used
-  syncId: number; 
+// --- Utils: Diff Logic (Inline to keep self-contained as requested by style) ---
+
+type DiffType = 'same' | 'added' | 'removed';
+interface DiffLine { type: DiffType; content: string; }
+interface DiffRowItem { type: DiffType; content: string; lineNumber: number; }
+interface DiffRow { left?: DiffRowItem; right?: DiffRowItem; }
+
+function computeLineDiff(text1: string, text2: string): DiffLine[] {
+  const lines1 = text1.split(/\r?\n/);
+  const lines2 = text2.split(/\r?\n/);
+  
+  // Simple LCS implementation
+  const m = lines1.length;
+  const n = lines2.length;
+  const dp = new Int32Array((m + 1) * (n + 1));
+  const width = n + 1;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (lines1[i - 1] === lines2[j - 1]) {
+        dp[i * width + j] = dp[(i - 1) * width + (j - 1)] + 1;
+      } else {
+        const up = dp[(i - 1) * width + j];
+        const left = dp[i * width + (j - 1)];
+        dp[i * width + j] = up > left ? up : left;
+      }
+    }
+  }
+
+  let i = m, j = n;
+  const diffs: DiffLine[] = [];
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && lines1[i - 1] === lines2[j - 1]) {
+      diffs.unshift({ type: 'same', content: lines1[i - 1] });
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i * width + (j - 1)] >= dp[(i - 1) * width + j])) {
+      diffs.unshift({ type: 'added', content: lines2[j - 1] });
+      j--;
+    } else if (i > 0 && (j === 0 || dp[i * width + (j - 1)] < dp[(i - 1) * width + j])) {
+      diffs.unshift({ type: 'removed', content: lines1[i - 1] });
+      i--;
+    }
+  }
+  return diffs;
 }
 
-// --- Utils ---
+function processDiffToRows(diffs: DiffLine[]): DiffRow[] {
+  const rows: DiffRow[] = [];
+  let bufferRemovals: DiffLine[] = [];
+  let bufferAdditions: DiffLine[] = [];
+  let originalLineNum = 1;
+  let modifiedLineNum = 1;
 
-const getType = (value: any): string => {
-  if (value === null) return 'null';
-  if (Array.isArray(value)) return 'array';
-  return typeof value;
-};
-
-// --- JSON Tree Components ---
-
-const JsonNode: React.FC<JsonNodeProps> = ({ name, value, isLast, level, expandDepth, syncId }) => {
-  const [expanded, setExpanded] = useState(level < expandDepth);
-  
-  // Sync expansion state when global controls (syncId) change
-  useEffect(() => {
-    setExpanded(level < expandDepth);
-  }, [expandDepth, level, syncId]);
-
-  const type = getType(value);
-  const isExpandable = type === 'object' || type === 'array';
-  const isEmpty = isExpandable && Object.keys(value).length === 0;
-
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpanded(!expanded);
-  };
-
-  const renderValue = () => {
-    if (type === 'string') return <span className="text-[#a5d6ff] break-all">"{value}"</span>; // Soft Blue
-    if (type === 'number') return <span className="text-[#ff9b5e]">{value}</span>; // Orange
-    if (type === 'boolean') return <span className="text-[#79c0ff] font-semibold">{value.toString()}</span>; // Blue
-    if (type === 'null') return <span className="text-gray-500 italic">null</span>;
-    return <span className="text-text-primary">{String(value)}</span>;
-  };
-
-  const renderObjectContent = () => {
-    const keys = Object.keys(value);
-    if (keys.length === 0) return null;
-
-    return keys.map((key, idx) => (
-      <JsonNode
-        key={key}
-        name={key}
-        value={value[key]}
-        isLast={idx === keys.length - 1}
-        level={level + 1}
-        expandDepth={expandDepth}
-        syncId={syncId}
-      />
-    ));
-  };
-
-  const renderArrayContent = () => {
-    if (value.length === 0) return null;
-
-    return value.map((item: any, idx: number) => (
-      <JsonNode
-        key={idx}
-        value={item}
-        isLast={idx === value.length - 1}
-        level={level + 1}
-        expandDepth={expandDepth}
-        syncId={syncId}
-      />
-    ));
-  };
-
-  const indentSize = 1.25; // rem
-
-  return (
-    <div className="font-mono text-sm leading-6">
-      <div 
-        className={`flex items-start hover:bg-hover-overlay rounded-sm transition-colors cursor-pointer select-text ${!isExpandable ? 'cursor-default' : ''}`}
-        style={{ paddingLeft: `${level * indentSize}rem` }}
-        onClick={isExpandable && !isEmpty ? handleToggle : undefined}
-      >
-        {/* Toggle Icon */}
-        <div className="w-5 h-6 flex items-center justify-center shrink-0 mr-1 text-text-secondary">
-          {isExpandable && !isEmpty && (
-            expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 break-words">
-          {name && <span className="text-[#d2a8ff] mr-2">{name}:</span>} {/* Purple for keys */}
-          
-          {!isExpandable ? (
-            <>
-              {renderValue()}
-              {!isLast && <span className="text-text-secondary">,</span>}
-            </>
-          ) : (
-            <>
-              <span className="text-text-secondary">{type === 'array' ? '[' : '{'}</span>
-              
-              {!expanded && !isEmpty && (
-                <button 
-                  onClick={handleToggle}
-                  className="mx-1 px-1.5 py-0.5 text-[10px] bg-element-bg rounded text-text-secondary hover:text-text-primary hover:bg-border-base transition-colors select-none"
-                >
-                  {type === 'array' ? `${value.length} items` : '...'}
-                </button>
-              )}
-
-              {isEmpty && <span className="text-text-secondary mx-1"></span>}
-
-              {(!expanded || isEmpty) && (
-                <>
-                  <span className="text-text-secondary">{type === 'array' ? ']' : '}'}</span>
-                  {!isLast && <span className="text-text-secondary">,</span>}
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Children */}
-      {isExpandable && expanded && !isEmpty && (
-        <div>
-          {type === 'array' ? renderArrayContent() : renderObjectContent()}
-          <div 
-            className="hover:bg-hover-overlay rounded-sm transition-colors"
-            style={{ paddingLeft: `${level * indentSize}rem` }}
-          >
-             <div className="flex items-center">
-               <div className="w-5 h-6 mr-1" /> {/* Spacer for icon alignment */}
-               <span className="text-text-secondary">{type === 'array' ? ']' : '}'}</span>
-               {!isLast && <span className="text-text-secondary">,</span>}
-             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const JsonTree: React.FC<{ data: any, expandDepth: number, syncId: number }> = ({ data, expandDepth, syncId }) => {
-  return (
-    <div className="p-4 overflow-auto w-full h-full">
-      <JsonNode 
-        value={data} 
-        isLast={true} 
-        level={0} 
-        expandDepth={expandDepth} 
-        syncId={syncId}
-      />
-    </div>
-  );
-};
-
-// --- Lint Logic ---
-
-const runLint = (json: any): string[] => {
-  const warnings: string[] = [];
-  
-  const traverse = (obj: any, path: string = '', depth: number = 0) => {
-    if (depth > 6) {
-      warnings.push(`Deep nesting detected at '${path || 'root'}'. Consider flattening structure.`);
-      return;
-    }
-
-    if (Array.isArray(obj)) {
-      if (obj.length > 0) {
-        const types = new Set(obj.slice(0, 20).map(item => item === null ? 'null' : typeof item));
-        if (types.size > 1) {
-          warnings.push(`Array at '${path || 'root'}' contains mixed types: ${Array.from(types).join(', ')}.`);
-        }
-      }
-      obj.forEach((item, index) => {
-        if (typeof item === 'object' && item !== null) {
-          traverse(item, `${path}[${index}]`, depth + 1);
-        }
-      });
-    } else if (typeof obj === 'object' && obj !== null) {
-      const keys = Object.keys(obj);
-      if (keys.length === 0) {
-        warnings.push(`Empty object found at '${path || 'root'}'.`);
-      }
-      keys.forEach(key => {
-        if (/[^a-zA-Z0-9_]/.test(key)) {
-           warnings.push(`Key '${key}' at '${path}' contains special characters. Recommended: camelCase or snake_case.`);
-        }
-        traverse(obj[key], path ? `${path}.${key}` : key, depth + 1);
+  const flushBuffers = () => {
+    const count = Math.max(bufferRemovals.length, bufferAdditions.length);
+    for (let k = 0; k < count; k++) {
+      rows.push({
+        left: bufferRemovals[k] ? { ...bufferRemovals[k], lineNumber: originalLineNum++ } : undefined,
+        right: bufferAdditions[k] ? { ...bufferAdditions[k], lineNumber: modifiedLineNum++ } : undefined
       });
     }
+    bufferRemovals = [];
+    bufferAdditions = [];
   };
 
-  traverse(json);
-  return warnings;
+  diffs.forEach(item => {
+    if (item.type === 'same') {
+      flushBuffers();
+      rows.push({
+        left: { ...item, lineNumber: originalLineNum++ },
+        right: { ...item, lineNumber: modifiedLineNum++ }
+      });
+    } else if (item.type === 'removed') {
+      bufferRemovals.push(item);
+    } else if (item.type === 'added') {
+      bufferAdditions.push(item);
+    }
+  });
+  flushBuffers();
+  return rows;
+}
+
+// --- Utils: JSON Logic ---
+
+const sortObjectKeys = (obj: any): any => {
+  if (Array.isArray(obj)) {
+    return obj.map(sortObjectKeys);
+  } else if (typeof obj === 'object' && obj !== null) {
+    return Object.keys(obj).sort().reduce((acc, key) => {
+      acc[key] = sortObjectKeys(obj[key]);
+      return acc;
+    }, {} as any);
+  }
+  return obj;
 };
 
-// --- Main Component ---
+// "Loose" parser to repair JSON (handles single quotes, trailing commas, unquoted keys)
+const looseJsonParse = (str: string) => {
+  try {
+    // eslint-disable-next-line no-new-func
+    return Function('"use strict";return (' + str + ')')();
+  } catch (e) {
+    return null;
+  }
+};
+
+// --- Component ---
 
 export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, toggleSidebar, toolLabel, initialValue }) => {
-  const [input, setInput] = useState<string>('');
-  const [output, setOutput] = useState<string>('');
-  const [parsedData, setParsedData] = useState<any>(null);
-  const [isValid, setIsValid] = useState<boolean>(true);
-  const [stats, setStats] = useState({ chars: 0, lines: 0 });
-  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [input, setInput] = useState('');
+  const [output, setOutput] = useState('');
+  
+  const [isValid, setIsValid] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   // View State
-  const [outputTab, setOutputTab] = useState<'output' | 'lint'>('output');
-  const [viewMode, setViewMode] = useState<'code' | 'tree'>('code');
+  const [diffMode, setDiffMode] = useState(false);
+  const [repairedJson, setRepairedJson] = useState('');
   
-  // Tree Control State
-  const [expandDepth, setExpandDepth] = useState<number>(2);
-  const [syncId, setSyncId] = useState<number>(0);
-  
-  // Linting State
-  const [lintWarnings, setLintWarnings] = useState<string[]>([]);
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
+  // Initialize
   useEffect(() => {
-    // If smart paste value provided, use it
     if (initialValue) {
       setInput(initialValue);
-      handleFormat(initialValue);
-    } else {
-      // Default placeholder
-      const placeholder = JSON.stringify({
-        name: "DevOmni",
-        type: "Application",
-        active: true,
-        features: ["JSON Format", "Tree View", "Converters"],
-        meta: { version: "1.0.0" }
-      }, null, 4);
-      setInput(placeholder);
-      handleFormat(placeholder);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialValue]); // Re-run if initialValue changes
+  }, [initialValue]);
 
-  const updateStats = (text: string) => {
-    setStats({
-      chars: text.length,
-      lines: text.split('\n').length
-    });
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newVal = e.target.value;
-    setInput(newVal);
-    updateStats(newVal);
-    try {
-      if (newVal.trim() === '') {
-        setIsValid(true);
-        setParsedData(null);
-        setLintWarnings([]);
-        return;
-      }
-      const parsed = JSON.parse(newVal);
-      setParsedData(parsed);
+  // Validation Effect
+  useEffect(() => {
+    if (!input.trim()) {
       setIsValid(true);
-    } catch (err) {
-      setIsValid(false);
-      setParsedData(null);
+      setErrorMsg(null);
+      return;
     }
+    try {
+      JSON.parse(input);
+      setIsValid(true);
+      setErrorMsg(null);
+      // Auto-populate output if in diff mode or just generally? 
+      // User request implies Format button is manual action, 
+      // but usually editors update live. Let's keep output manual via buttons for "Format"
+      // unless we are repairing.
+    } catch (e) {
+      setIsValid(false);
+      setErrorMsg((e as Error).message);
+    }
+  }, [input]);
+
+  // Actions
+  const handleFormat = () => {
+    try {
+      const obj = JSON.parse(input);
+      setOutput(JSON.stringify(obj, null, 2));
+      setDiffMode(false);
+    } catch (e) { /* ignore, disabled button */ }
   };
 
-  const handleFormat = (textToFormat: string = input) => {
-    updateStats(textToFormat);
+  const handleMinify = () => {
     try {
-      const parsed = JSON.parse(textToFormat);
-      const formatted = JSON.stringify(parsed, null, 2);
+      const obj = JSON.parse(input);
+      setOutput(JSON.stringify(obj));
+      setDiffMode(false);
+    } catch (e) { /* ignore */ }
+  };
+
+  const handleSort = () => {
+    try {
+      const obj = JSON.parse(input);
+      const sorted = sortObjectKeys(obj);
+      setOutput(JSON.stringify(sorted, null, 2));
+      setDiffMode(false);
+    } catch (e) { /* ignore */ }
+  };
+
+  const handleRepair = () => {
+    const repairedObj = looseJsonParse(input);
+    if (repairedObj) {
+      const formatted = JSON.stringify(repairedObj, null, 2);
+      setRepairedJson(formatted);
       setOutput(formatted);
-      setParsedData(parsed);
-      setIsValid(true);
-      setLintWarnings(runLint(parsed));
-    } catch (error) {
-      setOutput((error as Error).message);
-      setIsValid(false);
-      setLintWarnings([]);
-      setParsedData(null);
-    }
-  };
-
-  const handleCompact = () => {
-    try {
-      const parsed = JSON.parse(input);
-      const compacted = JSON.stringify(parsed);
-      setOutput(compacted);
-      setParsedData(parsed);
-      setIsValid(true);
-      setLintWarnings(runLint(parsed));
-    } catch (error) {
-      setOutput((error as Error).message);
-      setIsValid(false);
-    }
-  };
-
-  const handleEscape = () => {
-    try {
-      const escaped = JSON.stringify(input);
-      setOutput(escaped.slice(1, -1));
-    } catch (error) {
-      setOutput("Error escaping text");
+      setDiffMode(true);
+    } else {
+      // If even loose parse fails, maybe try basic string replacements or show error
+      // For this implementation, we assume loose parse covers most "repairable" cases.
+      setErrorMsg("Failed to repair automatically.");
     }
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(output);
+    navigator.clipboard.writeText(output || (diffMode ? repairedJson : ''));
     setCopyFeedback(true);
     setTimeout(() => setCopyFeedback(false), 2000);
   };
@@ -348,31 +217,20 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   const handleClear = () => {
     setInput('');
     setOutput('');
-    setParsedData(null);
-    updateStats('');
+    setDiffMode(false);
     setIsValid(true);
-    setLintWarnings([]);
   };
 
-  // Tree Controls
-  const triggerExpandAll = () => {
-    setExpandDepth(100);
-    setSyncId(s => s + 1);
-  };
-
-  const triggerCollapseAll = () => {
-    setExpandDepth(0);
-    setSyncId(s => s + 1); // Depth 0 collapses root children technically, or we can use 1 for root expanded
-  };
-  
-  const triggerLevel = (lvl: number) => {
-    setExpandDepth(lvl);
-    setSyncId(s => s + 1);
-  };
+  // Diff Computation
+  const diffRows = useMemo(() => {
+    if (!diffMode) return [];
+    const diffs = computeLineDiff(input, repairedJson);
+    return processDiffToRows(diffs);
+  }, [input, repairedJson, diffMode]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Standard Header */}
+      {/* Header */}
       <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
         <div className="flex items-center">
           {!isSidebarOpen && (
@@ -381,7 +239,6 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
               <button 
                 onClick={toggleSidebar} 
                 className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-                title="Open Sidebar"
               >
                 <PanelLeft size={18} />
               </button>
@@ -391,205 +248,171 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
             <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
           </div>
         </div>
+
+        {/* Toolbar */}
+        <div className="flex items-center space-x-3 electron-no-drag">
+           {/* Validation Status */}
+           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md border ${
+             isValid 
+               ? 'bg-green-500/10 border-green-500/20 text-green-500' 
+               : 'bg-red-500/10 border-red-500/20 text-red-400'
+           }`}>
+              {isValid ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+              <span className="text-xs font-bold uppercase">{isValid ? 'Valid' : 'Invalid'}</span>
+           </div>
+
+           <div className="w-px h-4 bg-border-base mx-1" />
+
+           {/* Actions */}
+           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
+              <button
+                 onClick={handleFormat}
+                 disabled={!isValid || !input}
+                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30 disabled:cursor-not-allowed"
+                 title="Format JSON"
+              >
+                 <AlignLeft size={14} />
+                 <span>Format</span>
+              </button>
+              <button
+                 onClick={handleMinify}
+                 disabled={!isValid || !input}
+                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30 disabled:cursor-not-allowed"
+                 title="Minify JSON"
+              >
+                 <Minimize2 size={14} />
+                 <span>Minify</span>
+              </button>
+              <button
+                 onClick={handleSort}
+                 disabled={!isValid || !input}
+                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30 disabled:cursor-not-allowed"
+                 title="Sort Keys"
+              >
+                 <ArrowDownAZ size={14} />
+                 <span>Sort</span>
+              </button>
+           </div>
+
+           <div className="w-px h-4 bg-border-base mx-1" />
+
+           {/* Repair Button */}
+           <button
+             onClick={handleRepair}
+             disabled={isValid || !input}
+             className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all border ${
+                !isValid && input
+                  ? 'bg-accent text-white border-accent shadow-sm hover:brightness-110 active:scale-95'
+                  : 'bg-element-bg border-border-base text-text-secondary opacity-50 cursor-not-allowed'
+             }`}
+             title="Attempt to repair invalid JSON"
+           >
+              <Wrench size={14} />
+              <span>Repair</span>
+           </button>
+        </div>
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden p-6 pt-4">
+      <div className="flex-1 flex overflow-hidden">
         
-        {/* Input Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg pr-2">
-          <div className="flex items-center justify-between mb-2">
+        {/* Left Pane: Input */}
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
+          <div className="flex items-center justify-between mb-2 px-1">
              <div className="text-sm font-bold text-text-secondary uppercase tracking-wider">Input</div>
              <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
                <Trash2 size={12} /> Clear
              </button>
           </div>
-          <div className="flex-1 bg-panel-bg rounded-xl border border-border-base overflow-hidden relative group hover:border-accent/30 transition-colors shadow-[var(--shadow-card)]">
-            <div className="absolute left-0 top-0 bottom-0 w-10 bg-app-bg border-r border-border-base pt-4 text-right pr-2 text-text-secondary font-mono text-xs select-none">
-              {Array.from({ length: Math.min(stats.lines, 20) }).map((_, i) => (
-                <div key={i} className="leading-6">{i + 1}</div>
-              ))}
-              {stats.lines > 20 && <div>...</div>}
-            </div>
-            
-            <textarea
-              spellCheck={false}
-              value={input}
-              onChange={handleInputChange}
-              className="w-full h-full bg-transparent resize-none focus:outline-none p-4 pl-12 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
-              placeholder='Paste your JSON here...'
-            />
+          <div className={`flex-1 bg-panel-bg rounded-lg border overflow-hidden relative transition-colors ${
+             !isValid && input ? 'border-red-500/30' : 'border-border-base focus-within:border-accent'
+          }`}>
+             {/* If in diff mode, overlay the 'left' side of diff, OR just show textarea with highlights? 
+                 Standard diff is side-by-side. We'll reuse the textarea for editing if not in diff mode.
+                 If in diff mode, we render the Left Diff Column to show removals.
+             */}
+             {diffMode ? (
+                <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
+                   {diffRows.map((row, idx) => (
+                      <div key={idx} className={`flex ${row.left?.type === 'removed' ? 'bg-red-500/10' : ''}`}>
+                         <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
+                            {row.left?.lineNumber}
+                         </div>
+                         <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
+                            row.left?.type === 'removed' ? 'text-text-primary' : 'text-text-secondary'
+                         }`}>
+                            {row.left?.content || ''}
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             ) : (
+                <textarea
+                  spellCheck={false}
+                  value={input}
+                  onChange={(e) => {
+                     setInput(e.target.value);
+                     setDiffMode(false); // Reset diff on edit
+                  }}
+                  className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-text-primary placeholder-text-secondary"
+                  placeholder='Paste JSON here...'
+                />
+             )}
           </div>
+          {!isValid && errorMsg && <div className="text-xs text-red-400 mt-2 px-1 font-mono truncate">{errorMsg}</div>}
         </div>
 
-        {/* Action Bar */}
-        <div className="w-16 flex flex-col items-center justify-center space-y-4 px-2 pt-6">
-           <ActionButton onClick={() => { handleFormat(input); setOutputTab('output'); }} icon={<ArrowRight size={18} />} label="Format" />
-           <ActionButton onClick={handleCompact} icon={<Minimize2 size={18} />} label="Compact" />
-           <ActionButton onClick={handleEscape} icon={<Maximize2 size={18} />} label="Escape" />
-        </div>
-
-        {/* Output Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg pl-2">
-          
-          {/* Output Toolbar */}
-          <div className="flex items-center justify-between mb-2">
-             <div className="flex items-center space-x-4">
-                <button 
-                  onClick={() => setOutputTab('output')}
-                  className={`text-sm font-bold uppercase tracking-wider transition-colors hover:text-text-primary ${
-                    outputTab === 'output' ? 'text-text-primary border-b-2 border-accent' : 'text-text-secondary'
-                  }`}
-                >
-                  Result
-                </button>
-                <button 
-                  onClick={() => setOutputTab('lint')}
-                  className={`text-sm font-bold uppercase tracking-wider transition-colors hover:text-text-primary flex items-center gap-2 ${
-                    outputTab === 'lint' ? 'text-text-primary border-b-2 border-accent' : 'text-text-secondary'
-                  }`}
-                >
-                  Lint
-                  {lintWarnings.length > 0 && (
-                    <span className="bg-orange-500/20 text-orange-500 text-[10px] px-1.5 rounded-full font-mono">
-                      {lintWarnings.length}
-                    </span>
-                  )}
-                </button>
+        {/* Right Pane: Output */}
+        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
+          <div className="flex items-center justify-between mb-2 px-1">
+             <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Output</span>
+                {diffMode && (
+                   <span className="text-[10px] bg-accent/20 text-accent px-2 rounded-full font-medium flex items-center gap-1">
+                     <ArrowRightLeft size={10} /> Diff View
+                   </span>
+                )}
              </div>
-
-             {/* Tree/Code Toggle & Controls */}
-             {outputTab === 'output' && isValid && parsedData && (
-               <div className="flex items-center space-x-2 bg-panel-bg rounded-md p-0.5 border border-border-base">
-                 
-                 {viewMode === 'tree' && (
-                   <div className="flex items-center px-1 border-r border-border-base mr-1 gap-0.5">
-                     <button 
-                       onClick={triggerCollapseAll} 
-                       className="p-1 hover:bg-hover-overlay rounded text-text-secondary hover:text-text-primary"
-                       title="Collapse All"
-                     >
-                       <ChevronsUp size={14} />
-                     </button>
-                     <div className="flex text-[10px] font-mono text-text-secondary mx-1 gap-1">
-                        <button onClick={() => triggerLevel(1)} className="hover:text-accent">1</button>
-                        <button onClick={() => triggerLevel(2)} className="hover:text-accent">2</button>
-                        <button onClick={() => triggerLevel(3)} className="hover:text-accent">3</button>
-                     </div>
-                     <button 
-                       onClick={triggerExpandAll} 
-                       className="p-1 hover:bg-hover-overlay rounded text-text-secondary hover:text-text-primary"
-                       title="Expand All"
-                     >
-                       <ChevronsDown size={14} />
-                     </button>
-                   </div>
-                 )}
-
-                 <button
-                   onClick={() => setViewMode('code')}
-                   className={`p-1.5 rounded transition-all ${viewMode === 'code' ? 'bg-element-bg text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
-                   title="Code View"
-                 >
-                   <Code2 size={14} />
-                 </button>
-                 <button
-                   onClick={() => setViewMode('tree')}
-                   className={`p-1.5 rounded transition-all ${viewMode === 'tree' ? 'bg-element-bg text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
-                   title="Tree View"
-                 >
-                   <ListTree size={14} />
-                 </button>
-               </div>
+             {/* Copy Button */}
+             {(output || repairedJson) && (
+               <button 
+                 onClick={handleCopy}
+                 className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+               >
+                 {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
+                 <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
+               </button>
              )}
           </div>
           
-          <div className="flex-1 bg-panel-bg rounded-xl border border-border-base overflow-hidden relative group hover:border-accent/30 transition-colors shadow-[var(--shadow-card)] flex flex-col">
-            
-            {outputTab === 'output' ? (
-              <>
-                {viewMode === 'code' || !isValid || !parsedData ? (
-                  <textarea
-                    readOnly
-                    spellCheck={false}
-                    value={output}
-                    className={`w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 ${isValid ? 'text-accent' : 'text-red-400'}`}
-                    placeholder='Result will appear here...'
-                  />
-                ) : (
-                  <JsonTree 
-                    data={parsedData} 
-                    expandDepth={expandDepth} 
-                    syncId={syncId} 
-                  />
-                )}
-                
-                {/* Copy Button (Only show on hover or always? Let's keep it visible but subtle) */}
-                <button 
-                  onClick={handleCopy}
-                  className="absolute bottom-4 right-4 bg-element-bg hover:brightness-105 text-text-primary px-4 py-2 rounded-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95 shadow-sm opacity-90 hover:opacity-100 z-10"
-                >
-                  {copyFeedback ? <CheckCircle2 size={16} className="text-green-500"/> : <Copy size={16} />}
-                  <span className="text-sm font-medium">{copyFeedback ? 'Copied!' : 'Copy Result'}</span>
-                </button>
-              </>
-            ) : (
-              <div className="w-full h-full overflow-y-auto p-4">
-                 {lintWarnings.length === 0 ? (
-                   <div className="flex flex-col items-center justify-center h-full text-text-secondary space-y-3 opacity-60">
-                     <CheckCircle2 size={48} className="text-green-500" />
-                     <p className="font-medium">No structure issues found.</p>
-                   </div>
-                 ) : (
-                   <div className="space-y-3">
-                     {lintWarnings.map((warning, idx) => (
-                       <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20">
-                          <AlertTriangle size={18} className="text-orange-500 shrink-0 mt-0.5" />
-                          <span className="text-sm text-text-primary">{warning}</span>
-                       </div>
-                     ))}
-                   </div>
-                 )}
-              </div>
-            )}
+          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
+             {diffMode ? (
+                <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
+                   {diffRows.map((row, idx) => (
+                      <div key={idx} className={`flex ${row.right?.type === 'added' ? 'bg-green-500/10' : ''}`}>
+                         <div className="w-10 shrink-0 text-right pr-3 select-none text-text-secondary/40 border-r border-border-base/50 bg-sidebar-bg/50">
+                            {row.right?.lineNumber}
+                         </div>
+                         <div className={`flex-1 pl-3 pr-2 whitespace-pre-wrap break-all ${
+                            row.right?.type === 'added' ? 'text-text-primary' : 'text-accent'
+                         }`}>
+                            {row.right?.content || ''}
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             ) : (
+                <textarea
+                  readOnly
+                  spellCheck={false}
+                  value={output}
+                  className="w-full h-full bg-transparent resize-none focus:outline-none p-4 font-mono text-sm leading-6 text-accent placeholder-text-secondary"
+                  placeholder='Result will appear here...'
+                />
+             )}
           </div>
         </div>
-      </div>
 
-      {/* Status Bar */}
-      <div className="h-8 bg-sidebar-bg border-t border-border-base flex items-center px-6 justify-between text-xs text-text-secondary shrink-0">
-        <div className="flex items-center space-x-4">
-          <span>Chars: <span className="text-text-primary">{stats.chars}</span></span>
-          <span className="w-px h-3 bg-border-base"></span>
-          <span>Lines: <span className="text-text-primary">{stats.lines}</span></span>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-           {input.trim() !== '' && (
-             isValid ? (
-               <>
-                 {lintWarnings.length > 0 ? (
-                   <div className="flex items-center space-x-1 text-orange-500 cursor-pointer hover:underline" onClick={() => setOutputTab('lint')}>
-                     <AlertTriangle size={12} />
-                     <span className="font-medium">{lintWarnings.length} Issues</span>
-                   </div>
-                 ) : (
-                   <div className="flex items-center space-x-1 text-green-500">
-                      <Check size={12} />
-                      <span className="font-medium">Clean</span>
-                   </div>
-                 )}
-                 <span className="w-px h-3 bg-border-base mx-2"></span>
-               </>
-             ) : (
-               <div className="flex items-center space-x-1 text-red-500">
-                 <AlertCircle size={12} />
-                 <span className="font-medium">Invalid</span>
-               </div>
-             )
-           )}
-           <span className="text-text-secondary">JSON</span>
-        </div>
       </div>
     </div>
   );

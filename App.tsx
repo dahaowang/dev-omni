@@ -29,7 +29,7 @@ import { Wand2 } from 'lucide-react';
 // --- Configuration ---
 
 const TOOL_LABELS: Record<string, string> = {
-  json: 'JSON Formatter',
+  json: 'JSON',
   sql: 'SQL Formatter',
   url: 'URL Encoder',
   base64: 'Base64 Converter',
