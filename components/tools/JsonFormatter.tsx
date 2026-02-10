@@ -10,7 +10,6 @@ import {
   Wrench,
   Copy,
   ArrowRightLeft,
-  Quote,
   Network,
   Code2,
   ChevronRight,
@@ -403,12 +402,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       if (!diffMode) {
           const formatted = JSON.stringify(parsed, null, 2);
           setOutput(formatted);
-          // Calculate stats based on formatted output usually, or input? 
-          // Use formatted for accurate line count of "pretty" json, or input for raw?
-          // Let's use the formatted version for stats to represent the "structure" better
           setStats(calculateJsonStats(parsed, formatted));
-      } else {
-          // If in diff mode, stats might be irrelevant or based on repaired
       }
       
     } catch (e) {
@@ -461,41 +455,6 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
       setDiffMode(true);
     } catch (e) {
       setErrorDetails({ message: "Failed to repair automatically: " + (e as Error).message, line: 0, column: 0 });
-    }
-  };
-
-  const handleEscape = () => {
-    // Escapes the current input string to a JSON string representation
-    if (!input) return;
-    const escaped = JSON.stringify(input);
-    // Remove the surrounding quotes added by stringify to just get the inner escaped content?
-    // Usually people want the quotes if it's for code. JSON.stringify("foo") -> ""foo""
-    // Let's keep it valid JSON string.
-    setInput(escaped);
-  };
-
-  const handleUnescape = () => {
-    // Unescapes: parse the string as JSON
-    if (!input) return;
-    try {
-        // If it starts with quote, try to parse it as a string
-        if (input.trim().startsWith('"')) {
-            const unescaped = JSON.parse(input);
-            if (typeof unescaped === 'string') {
-                setInput(unescaped);
-            } else {
-               // Fallback if it parsed to object
-               setInput(JSON.stringify(unescaped, null, 2));
-            }
-        } else {
-             // Maybe it's not quoted but contains escapes?
-             // Simple replace logic often safer for partials
-             const unescaped = input.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-             setInput(unescaped);
-        }
-    } catch (e) {
-        // Fallback simple unescape
-        // console.warn(e);
     }
   };
 
@@ -553,30 +512,6 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
            }`}>
               {isValid ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
               <span className="text-xs font-bold uppercase">{isValid ? 'Valid' : 'Invalid'}</span>
-           </div>
-
-           <div className="w-px h-4 bg-border-base mx-1" />
-
-           {/* String Tools */}
-           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
-              <button
-                 onClick={handleEscape}
-                 disabled={!input}
-                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
-                 title="Escape JSON String"
-              >
-                 <Quote size={14} />
-                 <span>Escape</span>
-              </button>
-              <button
-                 onClick={handleUnescape}
-                 disabled={!input}
-                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
-                 title="Unescape JSON String"
-              >
-                 <ArrowRightLeft size={14} />
-                 <span>Unescape</span>
-              </button>
            </div>
 
            <div className="w-px h-4 bg-border-base mx-1" />
@@ -783,42 +718,23 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
           </div>
         </div>
 
-        {/* Info Status Bar (Bottom) */}
+        {/* Info Status Bar (Bottom) - Compact Single Line */}
         {stats && !diffMode && isValid && (
-            <div className="h-28 border-t border-border-base bg-app-bg p-4 flex flex-col gap-2 animate-slide-up-fade shrink-0">
-                <div className="flex items-center gap-2 text-text-secondary mb-1">
-                    <CheckCircle2 size={14} className="text-accent" />
-                    <span className="text-xs font-bold uppercase tracking-wider">JSON Info</span>
-                </div>
-                <div className="bg-panel-bg border border-border-base rounded-lg p-3 grid grid-cols-4 gap-4 text-xs">
-                    <div className="flex flex-col gap-1">
-                       <span className="text-text-secondary">Size</span>
-                       <span className="font-mono text-text-primary font-medium">{formatBytes(stats.sizeBytes)}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                       <span className="text-text-secondary">Lines</span>
-                       <span className="font-mono text-text-primary font-medium">{stats.lines}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                       <span className="text-text-secondary">Characters</span>
-                       <span className="font-mono text-text-primary font-medium">{stats.chars}</span>
-                    </div>
-                     <div className="flex flex-col gap-1">
-                       <span className="text-text-secondary">Max Depth</span>
-                       <span className="font-mono text-text-primary font-medium">{stats.maxDepth}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                       <span className="text-text-secondary">Keys</span>
-                       <span className="font-mono text-text-primary font-medium">{stats.keys}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                       <span className="text-text-secondary">Objects</span>
-                       <span className="font-mono text-text-primary font-medium">{stats.objects}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                       <span className="text-text-secondary">Arrays</span>
-                       <span className="font-mono text-text-primary font-medium">{stats.arrays}</span>
-                    </div>
+            <div className="h-8 border-t border-border-base bg-sidebar-bg px-4 flex items-center justify-between text-xs text-text-secondary shrink-0 select-none">
+                <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={12} className="text-accent" />
+                        <span className="font-semibold text-text-primary">JSON Info</span>
+                    </span>
+                    <span className="w-px h-3 bg-border-base" />
+                    <span>Size: <span className="text-text-primary font-mono">{formatBytes(stats.sizeBytes)}</span></span>
+                    <span>Lines: <span className="text-text-primary font-mono">{stats.lines}</span></span>
+                    <span>Chars: <span className="text-text-primary font-mono">{stats.chars}</span></span>
+                    <span className="w-px h-3 bg-border-base" />
+                    <span>Depth: <span className="text-text-primary font-mono">{stats.maxDepth}</span></span>
+                    <span>Keys: <span className="text-text-primary font-mono">{stats.keys}</span></span>
+                    <span>Objects: <span className="text-text-primary font-mono">{stats.objects}</span></span>
+                    <span>Arrays: <span className="text-text-primary font-mono">{stats.arrays}</span></span>
                 </div>
             </div>
         )}
