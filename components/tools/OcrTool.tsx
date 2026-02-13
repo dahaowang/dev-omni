@@ -19,55 +19,95 @@ interface OcrToolProps {
   toolLabel: string;
 }
 
-interface OllamaModel {
+interface AIModel {
+  id: string;
   name: string;
-  modified_at: string;
-  size: number;
 }
 
-const DEFAULT_OLLAMA_HOST = 'http://localhost:11434';
+type ProviderType = 'ollama' | 'lm-studio';
+
+const PROVIDERS: Record<ProviderType, { label: string, defaultHost: string }> = {
+  'ollama': { label: 'Ollama', defaultHost: 'http://localhost:11434' },
+  'lm-studio': { label: 'LM Studio', defaultHost: 'http://localhost:1234' }
+};
 
 export const OcrTool: React.FC<OcrToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
-  // State
-  const [ollamaHost, setOllamaHost] = useState(DEFAULT_OLLAMA_HOST);
-  const [models, setModels] = useState<OllamaModel[]>([]);
+  // Config State
+  const [provider, setProvider] = useState<ProviderType>('ollama');
+  const [host, setHost] = useState(PROVIDERS['ollama'].defaultHost);
+  const [showConfig, setShowConfig] = useState(true);
+  
+  // Model State
+  const [models, setModels] = useState<AIModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
   
+  // Data State
   const [imageData, setImageData] = useState<string | null>(null);
   const [outputText, setOutputText] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [copyFeedback, setCopyFeedback] = useState(false);
-  const [showConfig, setShowConfig] = useState(true);
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize
   useEffect(() => {
     fetchModels();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]); // Refresh when provider changes
 
-  // Fetch Models from Ollama
+  // Update default host when provider changes (optional UX)
+  const handleProviderChange = (newProvider: ProviderType) => {
+    setProvider(newProvider);
+    setHost(PROVIDERS[newProvider].defaultHost);
+    setOutputText('');
+    setError(null);
+  };
+
+  // Fetch Models
   const fetchModels = async () => {
+    setError(null);
+    setModels([]);
+    setSelectedModel('');
+    
     try {
-      const response = await fetch(`${ollamaHost}/api/tags`);
-      if (!response.ok) throw new Error('Failed to connect to Ollama');
-      
-      const data = await response.json();
-      if (data.models && Array.isArray(data.models)) {
-        setModels(data.models);
-        // Default to a model that looks like it might support vision if possible, or just the first one
-        if (!selectedModel && data.models.length > 0) {
-           const visionModel = data.models.find((m: OllamaModel) => m.name.includes('ocr') || m.name.includes('vision') || m.name.includes('llava'));
-           setSelectedModel(visionModel ? visionModel.name : data.models[0].name);
+      if (provider === 'ollama') {
+        const response = await fetch(`${host}/api/tags`);
+        if (!response.ok) throw new Error(`Failed to connect to Ollama at ${host}`);
+        
+        const data = await response.json();
+        if (data.models && Array.isArray(data.models)) {
+          const mappedModels = data.models.map((m: any) => ({ id: m.name, name: m.name }));
+          setModels(mappedModels);
+          autoSelectModel(mappedModels);
         }
-        setError(null);
+      } else if (provider === 'lm-studio') {
+        const response = await fetch(`${host}/v1/models`);
+        if (!response.ok) throw new Error(`Failed to connect to LM Studio at ${host}`);
+        
+        const data = await response.json();
+        // LM Studio / OpenAI format: { data: [{ id: "model-name", ... }] }
+        if (data.data && Array.isArray(data.data)) {
+           const mappedModels = data.data.map((m: any) => ({ id: m.id, name: m.id }));
+           setModels(mappedModels);
+           autoSelectModel(mappedModels);
+        }
       }
     } catch (err) {
-      setError(`Could not fetch models from ${ollamaHost}. Is Ollama running?`);
-      setModels([]);
+      setError((err as Error).message);
     }
+  };
+
+  const autoSelectModel = (availableModels: AIModel[]) => {
+    if (availableModels.length === 0) return;
+    
+    // Simple heuristic to prefer vision/ocr models if present
+    const visionModel = availableModels.find(m => 
+        m.name.toLowerCase().includes('ocr') || 
+        m.name.toLowerCase().includes('vision') || 
+        m.name.toLowerCase().includes('llava')
+    );
+    setSelectedModel(visionModel ? visionModel.id : availableModels[0].id);
   };
 
   // Image Handling
@@ -106,38 +146,72 @@ export const OcrTool: React.FC<OcrToolProps> = ({ isSidebarOpen, toggleSidebar, 
     setOutputText('');
 
     try {
-      // Extract base64 data (remove prefix)
-      const base64Image = imageData.split(',')[1];
+      let resultText = '';
       
-      const payload = {
-        model: selectedModel,
-        messages: [
-          {
-            role: 'user',
-            content: 'Please recognize and extract all text from this image. Output only the text content.',
-            images: [base64Image]
-          }
-        ],
-        stream: false
-      };
+      if (provider === 'ollama') {
+         // Ollama Native API
+         // Requires raw base64 without data uri prefix
+         const base64Image = imageData.split(',')[1];
+         
+         const payload = {
+            model: selectedModel,
+            messages: [
+               {
+                  role: 'user',
+                  content: 'Please recognize and extract all text from this image. Output only the text content.',
+                  images: [base64Image]
+               }
+            ],
+            stream: false
+         };
 
-      const response = await fetch(`${ollamaHost}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+         const response = await fetch(`${host}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+         });
+         
+         if (!response.ok) throw new Error(`Ollama API Error: ${response.statusText}`);
+         const data = await response.json();
+         resultText = data.message?.content || '';
 
-      if (!response.ok) {
-        throw new Error(`Ollama API Error: ${response.statusText}`);
+      } else if (provider === 'lm-studio') {
+         // OpenAI Compatible API
+         // Supports passing Data URI directly
+         const payload = {
+            model: selectedModel,
+            messages: [
+               {
+                  role: 'user',
+                  content: [
+                     { type: 'text', text: 'Please recognize and extract all text from this image. Output only the text content.' },
+                     { 
+                        type: 'image_url', 
+                        image_url: { 
+                           url: imageData // Data URI is supported
+                        } 
+                     }
+                  ]
+               }
+            ],
+            stream: false
+         };
+
+         const response = await fetch(`${host}/v1/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+         });
+
+         if (!response.ok) throw new Error(`LM Studio API Error: ${response.statusText}`);
+         const data = await response.json();
+         resultText = data.choices?.[0]?.message?.content || '';
       }
 
-      const data = await response.json();
-      if (data.message && data.message.content) {
-        setOutputText(data.message.content);
+      if (resultText) {
+        setOutputText(resultText);
       } else {
-         setOutputText('(No text returned)');
+        setOutputText('(No text returned)');
       }
 
     } catch (err) {
@@ -191,14 +265,28 @@ export const OcrTool: React.FC<OcrToolProps> = ({ isSidebarOpen, toggleSidebar, 
       {/* Configuration Bar */}
       {showConfig && (
         <div className="p-4 border-b border-border-base bg-sidebar-bg/50 shrink-0 flex flex-wrap gap-4 items-end animate-fade-in">
+           
+           <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
+              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Provider</label>
+              <select 
+                   value={provider}
+                   onChange={(e) => handleProviderChange(e.target.value as ProviderType)}
+                   className="w-full appearance-none bg-input-bg border border-border-base rounded px-3 py-1.5 text-sm focus:border-accent outline-none cursor-pointer"
+               >
+                  {Object.entries(PROVIDERS).map(([key, val]) => (
+                     <option key={key} value={key}>{val.label}</option>
+                  ))}
+               </select>
+           </div>
+
            <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
-              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Ollama Host</label>
+              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">API Host</label>
               <input 
                  type="text" 
-                 value={ollamaHost}
-                 onChange={(e) => setOllamaHost(e.target.value)}
+                 value={host}
+                 onChange={(e) => setHost(e.target.value)}
                  className="w-full bg-input-bg border border-border-base rounded px-3 py-1.5 text-sm focus:border-accent outline-none font-mono"
-                 placeholder="http://localhost:11434"
+                 placeholder="http://localhost:..."
               />
            </div>
            
@@ -218,7 +306,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ isSidebarOpen, toggleSidebar, 
                  >
                     {models.length === 0 && <option value="">No models found</option>}
                     {models.map(m => (
-                       <option key={m.name} value={m.name}>{m.name}</option>
+                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
                  </select>
               </div>

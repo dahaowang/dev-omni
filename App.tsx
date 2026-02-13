@@ -50,7 +50,7 @@ const TOOL_LABELS: Record<string, string> = {
   cron: 'Cron Expression',
   'case-converter': 'Case Converter',
   jwt: 'JWT Debugger',
-  ocr: 'OCR (Ollama)'
+  ocr: 'OCR'
 };
 
 // --- Toast Component ---
