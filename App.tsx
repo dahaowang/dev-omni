@@ -21,6 +21,7 @@ import { RegexTesterTool } from './components/tools/RegexTesterTool';
 import { CronTool } from './components/tools/CronTool';
 import { CaseConverterTool } from './components/tools/CaseConverterTool';
 import { JwtTool } from './components/tools/JwtTool';
+import { OcrTool } from './components/tools/OcrTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { analyzeClipboard } from './utils/clipboardDetection';
@@ -48,7 +49,8 @@ const TOOL_LABELS: Record<string, string> = {
   regex: 'Regex Tester',
   cron: 'Cron Expression',
   'case-converter': 'Case Converter',
-  jwt: 'JWT Debugger'
+  jwt: 'JWT Debugger',
+  ocr: 'OCR (Ollama)'
 };
 
 // --- Toast Component ---
@@ -201,6 +203,8 @@ const App: React.FC = () => {
         return <CaseConverterTool {...commonProps} />;
       case 'jwt':
         return <JwtTool {...commonProps} />;
+      case 'ocr':
+        return <OcrTool {...commonProps} />;
       default:
         return <PlaceholderTool {...commonProps} />;
     }

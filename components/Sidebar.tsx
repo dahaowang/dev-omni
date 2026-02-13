@@ -25,7 +25,8 @@ import {
   CalendarClock,
   CaseSensitive,
   ShieldCheck,
-  Wand2 // Import Magic Wand
+  Wand2, // Import Magic Wand
+  ScanText // Import ScanText for OCR
 } from 'lucide-react';
 import { ToolType } from '../types';
 
@@ -54,6 +55,7 @@ const TOOLS: ToolConfig[] = [
   { id: 'jwt', label: 'JWT Debugger', icon: <ShieldCheck size={16} />, category: 'converters', keywords: ['jwt', 'token', 'decode', 'security'] },
   { id: 'yaml', label: 'JSON <> YAML', icon: <FileCode size={16} />, category: 'converters', keywords: ['yaml', 'convert'] },
   { id: 'sql', label: 'SQL Format', icon: <Database size={16} />, category: 'converters', keywords: ['sql', 'format', 'query'] },
+  { id: 'ocr', label: 'OCR (Ollama)', icon: <ScanText size={16} />, category: 'converters', keywords: ['ocr', 'image', 'text', 'recognize', 'scan', 'ollama'] },
   { id: 'number', label: 'Number Base', icon: <Calculator size={16} />, category: 'converters', keywords: ['hex', 'binary', 'decimal'] },
   { id: 'image-base64', label: 'Image <> Base64', icon: <FileImage size={16} />, category: 'converters', keywords: ['image', 'picture', 'base64', 'encode'] },
   { id: 'url', label: 'URL Encode', icon: <LinkIcon size={16} />, category: 'converters', keywords: ['url', 'encode', 'decode'] },
