@@ -45,6 +45,9 @@
     ],
     "directories": {
       "output": "release"
+    },
+    "mac": {
+      "target": ["zip"]
     }
   }
 }

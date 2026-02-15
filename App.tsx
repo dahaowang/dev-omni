@@ -33,7 +33,7 @@ const TOOL_LABELS: Record<string, string> = {
   json: 'JSON',
   sql: 'SQL Formatter',
   url: 'URL Encoder',
-  base64: 'Base64 Converter',
+  base64: 'Text Converter',
   number: 'Number Base',
   yaml: 'JSON <> YAML',
   timestamp: 'Timestamp Generator',

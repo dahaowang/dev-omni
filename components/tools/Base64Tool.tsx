@@ -14,11 +14,13 @@ interface Base64ToolProps {
 }
 
 type Mode = 'encode' | 'decode';
+type TransformType = 'base64' | 'unicode' | 'utf8';
 
 export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [mode, setMode] = useState<Mode>('encode');
+  const [transformType, setTransformType] = useState<TransformType>('base64');
   const [error, setError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
 
@@ -30,29 +32,71 @@ export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSid
     }
 
     try {
-      if (mode === 'encode') {
-        // UTF-8 safe encoding
-        const encoder = new TextEncoder();
-        const data = encoder.encode(input);
-        // Convert Uint8Array to binary string
-        const binString = Array.from(data, (byte) => String.fromCodePoint(byte)).join("");
-        const result = btoa(binString);
-        setOutput(result);
-        setError(null);
-      } else {
-        // UTF-8 safe decoding
-        const binString = atob(input);
-        const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0) || 0);
-        const decoder = new TextDecoder();
-        const result = decoder.decode(bytes);
-        setOutput(result);
-        setError(null);
+      let result = '';
+      
+      if (transformType === 'base64') {
+        if (mode === 'encode') {
+          // UTF-8 safe encoding
+          const encoder = new TextEncoder();
+          const data = encoder.encode(input);
+          const binString = Array.from(data, (byte) => String.fromCodePoint(byte)).join("");
+          result = btoa(binString);
+        } else {
+          // UTF-8 safe decoding
+          const binString = atob(input);
+          const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0) || 0);
+          const decoder = new TextDecoder();
+          result = decoder.decode(bytes);
+        }
+      } 
+      else if (transformType === 'unicode') {
+        if (mode === 'encode') {
+          // Text to Unicode Escape (\uXXXX)
+          result = input.split('').map(char => {
+            const code = char.charCodeAt(0).toString(16).padStart(4, '0');
+            return '\\u' + code;
+          }).join('');
+        } else {
+          // Unicode Escape to Text
+          result = input.replace(/\\u[\dA-F]{4}/gi, (match) => 
+            String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16))
+          );
+        }
+      } 
+      else if (transformType === 'utf8') {
+        if (mode === 'encode') {
+          // Text to Hex (UTF-8 bytes) with \x prefix
+          const encoder = new TextEncoder();
+          const data = encoder.encode(input);
+          result = Array.from(data).map(b => '\\x' + b.toString(16).padStart(2, '0')).join('');
+        } else {
+          // Hex (\xHH) to Text
+          // Match all \xHH sequences
+          const hexMatches = input.match(/\\x([0-9A-Fa-f]{2})/g);
+          
+          if (!hexMatches && input.trim().length > 0) {
+             // If input exists but doesn't match pattern, try to be lenient if it's just raw hex or space separated
+             // But per requirement, we focus on \x format. Let's fallback to strict or error.
+             throw new Error("Invalid Hex format. Expected \\xHH sequences.");
+          }
+
+          if (hexMatches) {
+             const bytes = new Uint8Array(hexMatches.map(h => parseInt(h.substring(2), 16)));
+             const decoder = new TextDecoder();
+             result = decoder.decode(bytes);
+          } else {
+             result = '';
+          }
+        }
       }
+
+      setOutput(result);
+      setError(null);
     } catch (err) {
-      setOutput('');
-      setError('Error: Invalid Base64 input or malformed data.');
+      setOutput(''); // Clear output on error
+      setError(`Error: Invalid input for ${transformType} ${mode}.`);
     }
-  }, [input, mode]);
+  }, [input, mode, transformType]);
 
   const handleCopy = () => {
     if (!output) return;
@@ -67,6 +111,27 @@ export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSid
 
   const toggleMode = () => {
     setMode(prev => prev === 'encode' ? 'decode' : 'encode');
+  };
+
+  const getOutputLabel = () => {
+    if (mode === 'encode') {
+       switch (transformType) {
+         case 'base64': return 'Base64';
+         case 'unicode': return 'Unicode Escaped';
+         case 'utf8': return 'Hex (\\xHH)';
+       }
+    } else {
+      return 'Plain Text';
+    }
+  };
+
+  const getPlaceholder = () => {
+    if (mode === 'encode') return `Enter text to encode to ${transformType}...`;
+    switch (transformType) {
+      case 'base64': return "Enter Base64 string to decode...";
+      case 'unicode': return "Enter Unicode escape sequence (\\uXXXX) to decode...";
+      case 'utf8': return "Enter Hex string (e.g. \\x48\\x65\\x6c\\x6c\\x6f) to decode...";
+    }
   };
 
   return (
@@ -93,6 +158,19 @@ export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSid
 
         {/* Toolbar */}
         <div className="flex items-center space-x-3 electron-no-drag">
+           {/* Transform Type Selector */}
+           <select 
+             value={transformType}
+             onChange={(e) => setTransformType(e.target.value as TransformType)}
+             className="bg-panel-bg text-text-primary border border-border-base rounded text-xs px-2 py-1 outline-none focus:border-accent"
+           >
+             <option value="base64">Base64</option>
+             <option value="unicode">Unicode</option>
+             <option value="utf8">UTF-8 (Hex)</option>
+           </select>
+
+           <div className="w-px h-4 bg-border-base mx-1" />
+
            <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
              <button
                onClick={() => setMode('encode')}
@@ -144,7 +222,7 @@ export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSid
                value={input}
                onChange={(e) => setInput(e.target.value)}
                className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none placeholder-text-secondary"
-               placeholder={mode === 'encode' ? "Enter text to encode to Base64..." : "Enter Base64 string to decode..."}
+               placeholder={getPlaceholder()}
                spellCheck={false}
             />
           </div>
@@ -154,7 +232,7 @@ export const Base64Tool: React.FC<Base64ToolProps> = ({ isSidebarOpen, toggleSid
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between mb-2 pl-1">
             <div className="text-sm font-medium text-text-secondary">
-              Output <span className="text-xs opacity-50 ml-1">({mode === 'encode' ? 'Base64' : 'Plain Text'})</span>
+              Output <span className="text-xs opacity-50 ml-1">({getOutputLabel()})</span>
             </div>
             {error && (
               <span className="text-xs text-red-400 font-medium">{error}</span>
