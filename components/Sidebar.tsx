@@ -59,7 +59,7 @@ const TOOLS: ToolConfig[] = [
   { id: 'number', label: 'Number Base', icon: <Calculator size={16} />, category: 'converters', keywords: ['hex', 'binary', 'decimal'] },
   { id: 'image-base64', label: 'Image <> Base64', icon: <FileImage size={16} />, category: 'converters', keywords: ['image', 'picture', 'base64', 'encode'] },
   { id: 'url', label: 'URL Encode', icon: <LinkIcon size={16} />, category: 'converters', keywords: ['url', 'encode', 'decode'] },
-  { id: 'base64', label: 'Base64 Text', icon: <Binary size={16} />, category: 'converters', keywords: ['base64', 'encode', 'decode', 'text'] },
+  { id: 'base64', label: 'Text Converter', icon: <Binary size={16} />, category: 'converters', keywords: ['base64', 'encode', 'decode', 'text', 'unicode', 'utf8', 'hex'] },
   
   // Generators
   { id: 'cron', label: 'Cron Parser', icon: <CalendarClock size={16} />, category: 'generators', keywords: ['cron', 'schedule', 'time', 'job'] },
