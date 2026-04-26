@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const esbuild = require('esbuild');
 
 const projectRoot = path.resolve(__dirname, '..');
@@ -44,10 +45,12 @@ esbuild.buildSync({
 
 for (const language of languages) {
   const langSource = path.join(path.dirname(require.resolve(`@tesseract.js-data/${language}/package.json`)), langVersion);
-  copyFile(
-    path.join(langSource, `${language}.traineddata.gz`),
-    path.join(outputRoot, 'lang', langVersion, `${language}.traineddata.gz`)
-  );
+  const compressedData = fs.readFileSync(path.join(langSource, `${language}.traineddata.gz`));
+  const trainedData = zlib.gunzipSync(compressedData);
+  const target = path.join(outputRoot, 'lang', langVersion, `${language}.traineddata`);
+
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, trainedData);
 }
 
 console.log(`Prepared OCR assets in ${path.relative(projectRoot, outputRoot)}`);

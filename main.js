@@ -1,8 +1,56 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, protocol } = require('electron');
+const fs = require('fs');
 const path = require('path');
 
 // Prevent garbage collection
 let mainWindow;
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true
+    }
+  }
+]);
+
+const MIME_TYPES = {
+  '.css': 'text/css',
+  '.gz': 'application/gzip',
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.wasm': 'application/wasm'
+};
+
+function registerAppProtocol() {
+  protocol.handle('app', async (request) => {
+    const distRoot = path.join(__dirname, 'dist');
+    const url = new URL(request.url);
+    const requestedPath = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
+    const filePath = path.normalize(path.join(distRoot, requestedPath));
+
+    if (!filePath.startsWith(distRoot + path.sep)) {
+      return new Response('Not found', { status: 404 });
+    }
+
+    try {
+      const data = await fs.promises.readFile(filePath);
+      const contentType = MIME_TYPES[path.extname(filePath)] || 'application/octet-stream';
+      return new Response(data, {
+        headers: {
+          'Content-Type': contentType
+        }
+      });
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -35,7 +83,7 @@ function createWindow() {
     // mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     // In production, load the built html file
-    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+    mainWindow.loadURL('app://devomni/index.html');
   }
 
   // Gracefully show window when ready to prevent "white flash"
@@ -48,7 +96,10 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  registerAppProtocol();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

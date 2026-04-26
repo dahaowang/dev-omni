@@ -39,6 +39,7 @@ type TesseractWorker = Awaited<ReturnType<typeof createWorker>>;
 type OcrLanguageMode = 'auto' | 'eng' | 'chi_sim';
 
 const OCR_LANG_VERSION = '4.0.0_best_int';
+const OCR_WORKER_TIMEOUT_MS = 180000;
 
 const OCR_LANGUAGE_OPTIONS: Array<{
   id: OcrLanguageMode;
@@ -145,6 +146,21 @@ const getWordCount = (text: string) => text.trim().split(/\s+/).filter(Boolean).
 
 const nextPaint = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, getMessage: () => string) => {
+  let timeoutId: number | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(getMessage())), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+};
+
 const getErrorMessage = (err: unknown) => {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
@@ -178,6 +194,7 @@ export const OcrTool: React.FC<OcrToolProps> = ({ toolLabel }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const workerRef = useRef<TesseractWorker | null>(null);
   const workerLanguageRef = useRef<string | null>(null);
+  const workerLoadErrorRef = useRef<string | null>(null);
   const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -225,17 +242,37 @@ export const OcrTool: React.FC<OcrToolProps> = ({ toolLabel }) => {
     }
 
     updateStage('starting-worker', null);
-    const worker = await createWorker(workerLanguage, 1, {
-      workerPath: getOcrAssetUrl('ocr/worker.min.js'),
-      corePath: getOcrAssetUrl('ocr/core'),
-      langPath: getOcrAssetUrl(`ocr/lang/${OCR_LANG_VERSION}`),
-      workerBlobURL: false,
-      logger: (message) => {
-        if (message.status) {
-          updateStage(message.status, typeof message.progress === 'number' ? message.progress : null);
+    workerLoadErrorRef.current = null;
+    const workerLanguages = workerLanguage.split('+');
+    const initialWorkerLanguage = workerLanguages[0] || workerLanguage;
+    const worker = await withTimeout(
+      createWorker(initialWorkerLanguage, 1, {
+        workerPath: getOcrAssetUrl('ocr/worker.min.js'),
+        corePath: getOcrAssetUrl('ocr/core'),
+        langPath: getOcrAssetUrl(`ocr/lang/${OCR_LANG_VERSION}`),
+        cacheMethod: 'none',
+        gzip: false,
+        workerBlobURL: false,
+        logger: (message) => {
+          if (message.status) {
+            updateStage(message.status, typeof message.progress === 'number' ? message.progress : null);
+          }
+        },
+        errorHandler: (message) => {
+          workerLoadErrorRef.current = getErrorMessage(message);
         }
-      }
-    });
+      }),
+      OCR_WORKER_TIMEOUT_MS,
+      () => workerLoadErrorRef.current || `Timed out loading OCR language data from ${getOcrAssetUrl(`ocr/lang/${OCR_LANG_VERSION}`)}`
+    );
+
+    if (initialWorkerLanguage !== workerLanguage) {
+      await withTimeout(
+        worker.reinitialize(workerLanguage),
+        OCR_WORKER_TIMEOUT_MS,
+        () => workerLoadErrorRef.current || `Timed out loading OCR language data for ${workerLanguage}`
+      );
+    }
 
     await worker.setParameters({
       tessedit_pageseg_mode: PSM.AUTO,
