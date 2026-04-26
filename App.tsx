@@ -71,6 +71,8 @@ const Toast: React.FC<{ message: string, onClose: () => void }> = ({ message, on
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ToolType>('json');
+  const [visitedTools, setVisitedTools] = useState<ToolType[]>(['json']);
+  const [toolResetKeys, setToolResetKeys] = useState<Partial<Record<ToolType, number>>>({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
@@ -95,6 +97,10 @@ const App: React.FC = () => {
     localStorage.setItem('devomni-favorites', JSON.stringify(favorites));
   }, [favorites]);
 
+  useEffect(() => {
+    setVisitedTools(prev => prev.includes(activeTool) ? prev : [...prev, activeTool]);
+  }, [activeTool]);
+
   const handleSmartPaste = async (isAutoTrigger: boolean = false) => {
     try {
       // In browser/Electron, readText might require focus. 
@@ -117,6 +123,7 @@ const App: React.FC = () => {
         // Switch tool and inject data
         setActiveTool(result.tool);
         setSmartPasteData({ tool: result.tool, content: result.content });
+        setToolResetKeys(prev => ({ ...prev, [result.tool]: (prev[result.tool] || 0) + 1 }));
         setToastMessage(`Smart Paste: Detected ${result.label}`);
         
         // Auto-dismiss toast
@@ -149,20 +156,17 @@ const App: React.FC = () => {
     );
   };
 
-  const renderTool = () => {
-    // Only pass initialValue if the current active tool matches the smart paste detected tool
-    // AND we haven't 'consumed' it yet (though React key update handles reset usually, 
-    // passing it as a prop that triggers useEffect in child is safer)
-    const initialValue = (smartPasteData && smartPasteData.tool === activeTool) ? smartPasteData.content : undefined;
+  const renderTool = (toolId: ToolType) => {
+    const initialValue = (smartPasteData && smartPasteData.tool === toolId) ? smartPasteData.content : undefined;
 
     const commonProps = {
       isSidebarOpen,
       toggleSidebar: () => setIsSidebarOpen(!isSidebarOpen),
-      toolLabel: TOOL_LABELS[activeTool] || activeTool,
-      initialValue // Pass this to all tools, they can choose to use it
+      toolLabel: TOOL_LABELS[toolId] || toolId,
+      initialValue
     };
 
-    switch (activeTool) {
+    switch (toolId) {
       case 'json':
         return <JsonFormatter {...commonProps} />;
       case 'sql':
@@ -224,11 +228,14 @@ const App: React.FC = () => {
           onSmartPaste={() => handleSmartPaste(false)} // Manual trigger always processes
         />
         
-        {/* Tool Container with Animation Key */}
-        {/* We add smartPasteData to key to force re-render if same tool is auto-selected with new data */}
-        <div key={`${activeTool}-${smartPasteData?.content?.substring(0, 10)}`} className="flex-1 flex flex-col h-full animate-slide-up-fade overflow-hidden">
-          {renderTool()}
-        </div>
+        {visitedTools.map(toolId => (
+          <div
+            key={`${toolId}-${toolResetKeys[toolId] || 0}`}
+            className={`flex-1 flex-col h-full overflow-hidden ${toolId === activeTool ? 'flex animate-slide-up-fade' : 'hidden'}`}
+          >
+            {renderTool(toolId)}
+          </div>
+        ))}
       </div>
       
       <SettingsModal 
