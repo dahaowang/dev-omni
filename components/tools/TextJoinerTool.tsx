@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  PanelLeft, 
   Trash2, 
   Copy, 
   CheckCircle2, 
   ArrowDownToLine,
-  ArrowUpFromLine
+  ArrowUpFromLine,
+  ArrowDownUp
 } from 'lucide-react';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
+import {
+  PaneHeader,
+  SegmentedControl,
+  StatusBadge,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface TextJoinerToolProps {
   isSidebarOpen: boolean;
@@ -92,131 +101,82 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-                title="Open Sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-          </div>
-        </div>
+    <ToolShell>
+      <ToolHeader icon={<ArrowDownUp />} title={toolLabel} subtitle="join lines · split text · delimiter presets">
+        <StatusBadge>{input ? `${input.length} chars` : 'Waiting'}</StatusBadge>
+        <SegmentedControl
+          value={mode}
+          onChange={(value: Mode) => setMode(value)}
+          options={[
+            { value: 'join', label: 'Join Lines', icon: <ArrowUpFromLine /> },
+            { value: 'split', label: 'Split Text', icon: <ArrowDownToLine /> }
+          ]}
+        />
+        <ToolButton
+          onClick={handleCopy}
+          disabled={!output}
+          icon={copyFeedback ? <CheckCircle2 /> : <Copy />}
+          variant="primary"
+        >
+          {copyFeedback ? 'Copied' : 'Copy'}
+        </ToolButton>
+      </ToolHeader>
 
-        {/* Top Controls */}
-        <div className="flex items-center space-x-3 electron-no-drag">
-           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
-             <button
-               onClick={() => setMode('join')}
-               className={`flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all ${
-                 mode === 'join'
-                   ? 'bg-element-bg text-text-primary shadow-sm' 
-                   : 'text-text-secondary hover:text-text-primary'
-               }`}
-             >
-               <ArrowUpFromLine size={14} />
-               <span>Join Lines</span>
-             </button>
-             <button
-               onClick={() => setMode('split')}
-               className={`flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all ${
-                 mode === 'split'
-                   ? 'bg-element-bg text-text-primary shadow-sm' 
-                   : 'text-text-secondary hover:text-text-primary'
-               }`}
-             >
-               <ArrowDownToLine size={14} />
-               <span>Split Text</span>
-             </button>
-           </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border-base bg-sidebar-bg px-4 py-3">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fg-3)]">Delimiter</span>
+        <input
+          type="text"
+          value={delimiter}
+          onChange={(e) => setDelimiter(e.target.value)}
+          placeholder=","
+          className="h-7 w-24 rounded-[var(--radius-sm)] border border-border-base bg-input-bg px-2 text-center font-mono text-xs outline-none focus:border-accent"
+        />
+        <div className="flex items-center gap-1">
+          {PRESETS.map((preset) => (
+            <ToolButton
+              key={preset.label}
+              onClick={() => setDelimiter(preset.val)}
+              variant={delimiter === preset.val ? 'primary' : 'default'}
+              className="h-7 px-2"
+              title={`Use ${preset.label} as delimiter`}
+            >
+              {preset.label}
+            </ToolButton>
+          ))}
         </div>
+        <span className="h-5 w-px bg-border-base" />
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-text-secondary hover:text-text-primary">
+          <input
+            type="checkbox"
+            checked={trim}
+            onChange={() => setTrim(!trim)}
+            className="toggle-checkbox"
+          />
+          Trim whitespace
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-text-secondary hover:text-text-primary">
+          <input
+            type="checkbox"
+            checked={ignoreEmpty}
+            onChange={() => setIgnoreEmpty(!ignoreEmpty)}
+            className="toggle-checkbox"
+          />
+          Ignore empty
+        </label>
       </div>
 
-      {/* Configuration Bar */}
-      <div className="p-4 border-b border-border-base bg-sidebar-bg/50 flex flex-wrap gap-4 items-center shrink-0">
-         
-         {/* Delimiter Input */}
-         <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-text-secondary uppercase">Delimiter</span>
-            <div className="relative">
-              <input 
-                type="text" 
-                value={delimiter}
-                onChange={(e) => setDelimiter(e.target.value)}
-                placeholder=","
-                className="w-24 bg-input-bg border border-border-base text-sm rounded px-2 py-1.5 focus:border-accent outline-none font-mono text-center"
-              />
-            </div>
-         </div>
-
-         {/* Presets */}
-         <div className="flex items-center gap-1">
-            {PRESETS.map(p => (
-              <button
-                key={p.label}
-                onClick={() => setDelimiter(p.val)}
-                className={`px-2 py-1 text-xs rounded border transition-colors ${
-                   delimiter === p.val 
-                   ? 'bg-accent/10 border-accent text-accent font-medium' 
-                   : 'bg-element-bg border-border-base text-text-secondary hover:text-text-primary hover:border-border-hover'
-                }`}
-                title={`Use ${p.label} as delimiter`}
-              >
-                {p.label}
-              </button>
-            ))}
-         </div>
-
-         <div className="w-px h-6 bg-border-base mx-2" />
-
-         {/* Options */}
-         <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                checked={trim} 
-                onChange={() => setTrim(!trim)}
-                className="rounded border-border-base bg-input-bg text-accent focus:ring-0 w-3.5 h-3.5"
-              />
-              <span className="text-xs text-text-secondary group-hover:text-text-primary select-none">Trim Whitespace</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                checked={ignoreEmpty} 
-                onChange={() => setIgnoreEmpty(!ignoreEmpty)}
-                className="rounded border-border-base bg-input-bg text-accent focus:ring-0 w-3.5 h-3.5"
-              />
-              <span className="text-xs text-text-secondary group-hover:text-text-primary select-none">Ignore Empty</span>
-            </label>
-         </div>
-
-      </div>
-
-      {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        
-        {/* Input */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
-          <div className="flex items-center justify-between mb-2 px-1">
-             <div className="text-sm font-medium text-text-secondary">
-               Input {mode === 'join' ? '(List)' : '(Single Line)'}
-             </div>
-             <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-               <Trash2 size={12} /> Clear
-             </button>
-          </div>
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ToolPane className="border-b border-border-base">
+          <PaneHeader
+            title="Input"
+            meta={mode === 'join' ? 'list' : 'single line'}
+            actions={
+              <ToolButton onClick={handleClear} icon={<Trash2 />} variant="ghost" className="h-[22px] px-1.5">
+                Clear
+              </ToolButton>
+            }
+          />
+          <div className="relative min-h-0 flex-1 overflow-hidden">
             <LineNumberTextarea
               spellCheck={false}
               value={input}
@@ -225,25 +185,11 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
               className="text-text-primary placeholder-text-secondary"
             />
           </div>
-        </div>
+        </ToolPane>
 
-        {/* Output */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
-          <div className="flex items-center justify-between mb-2 px-1">
-             <div className="text-sm font-medium text-text-secondary">
-               Output {mode === 'join' ? '(Single Line)' : '(List)'}
-             </div>
-             {output && (
-              <button 
-                onClick={handleCopy}
-                className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
-              >
-                {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
-                <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
-              </button>
-            )}
-          </div>
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
+        <ToolPane>
+          <PaneHeader title="Output" meta={mode === 'join' ? 'single line' : 'list'} />
+          <div className="relative min-h-0 flex-1 overflow-hidden">
             <LineNumberTextarea
               readOnly
               value={output}
@@ -251,9 +197,8 @@ export const TextJoinerTool: React.FC<TextJoinerToolProps> = ({ isSidebarOpen, t
               className="text-accent placeholder-text-secondary"
             />
           </div>
-        </div>
-
+        </ToolPane>
       </div>
-    </div>
+    </ToolShell>
   );
 };

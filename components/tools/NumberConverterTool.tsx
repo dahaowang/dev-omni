@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  PanelLeft, 
   Copy, 
   CheckCircle2, 
   Trash2,
-  ArrowDownUp
+  ArrowDownUp,
+  Calculator
 } from 'lucide-react';
+import {
+  PaneHeader,
+  StatusBadge,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface NumberConverterToolProps {
   isSidebarOpen: boolean;
@@ -92,113 +100,79 @@ export const NumberConverterTool: React.FC<NumberConverterToolProps> = ({ isSide
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-                title="Open Sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-          </div>
-        </div>
+    <ToolShell>
+      <ToolHeader icon={<Calculator />} title={toolLabel} subtitle="binary · octal · decimal · hexadecimal">
+        {error ? <StatusBadge tone="bad">{error}</StatusBadge> : <StatusBadge>{input ? `${input.replace(/\s/g, '').length} digits` : 'waiting'}</StatusBadge>}
+        <ToolButton onClick={handleSwap} icon={<ArrowDownUp />}>
+          Swap
+        </ToolButton>
+      </ToolHeader>
 
-        {/* Header Actions */}
-        <div className="flex items-center space-x-3 electron-no-drag">
-           <button 
-              onClick={handleSwap}
-              className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded transition-colors flex items-center gap-2 px-3 border border-transparent hover:border-border-base"
-              title="Swap Bases"
-           >
-              <ArrowDownUp size={14} />
-              <span className="text-xs font-medium">Swap</span>
-           </button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 flex flex-col p-4 overflow-hidden space-y-4">
-        
-        {/* Input Section */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-2 pl-1">
-             <div className="flex items-center space-x-2">
-               <span className="text-sm font-medium text-text-secondary">Input</span>
-               <select 
-                 value={fromBase}
-                 onChange={(e) => setFromBase(Number(e.target.value))}
-                 className="bg-element-bg border border-border-base text-xs text-text-primary rounded px-2 py-1 outline-none focus:border-accent"
-               >
-                 {BASES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-               </select>
-             </div>
-             <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-               <Trash2 size={12} /> Clear
-             </button>
-          </div>
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-            <textarea 
-               value={input}
-               onChange={(e) => setInput(e.target.value)}
-               className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none placeholder-text-secondary"
-               placeholder={`Enter Base ${fromBase} number...`}
-               spellCheck={false}
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-2">
+        <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+          <PaneHeader
+            title="Input"
+            actions={
+              <div className="flex items-center gap-2">
+                <select
+                  value={fromBase}
+                  onChange={(e) => setFromBase(Number(e.target.value))}
+                  className="h-[24px] rounded-[var(--radius-sm)] border border-border-base bg-element-bg px-2 text-[11px] outline-none focus:border-accent"
+                >
+                  {BASES.map((base) => <option key={base.value} value={base.value}>{base.label}</option>)}
+                </select>
+                <ToolButton onClick={handleClear} icon={<Trash2 />} variant="ghost" className="h-[22px] px-1.5">
+                  Clear
+                </ToolButton>
+              </div>
+            }
+          />
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="h-full w-full resize-none bg-transparent p-4 font-mono text-sm leading-6 placeholder:text-text-secondary focus:outline-none"
+              placeholder={`Enter Base ${fromBase} number...`}
+              spellCheck={false}
             />
           </div>
-        </div>
+        </ToolPane>
 
-        {/* Output Section */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-2 pl-1">
-             <div className="flex items-center space-x-2">
-               <span className="text-sm font-medium text-text-secondary">Output</span>
-               <select 
-                 value={toBase}
-                 onChange={(e) => setToBase(Number(e.target.value))}
-                 className="bg-element-bg border border-border-base text-xs text-text-primary rounded px-2 py-1 outline-none focus:border-accent"
-               >
-                 {BASES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-               </select>
-             </div>
-            {error && (
-              <span className="text-xs text-red-400 font-medium">{error}</span>
+        <ToolPane>
+          <PaneHeader
+            title="Output"
+            actions={
+              <select
+                value={toBase}
+                onChange={(e) => setToBase(Number(e.target.value))}
+                className="h-[24px] rounded-[var(--radius-sm)] border border-border-base bg-element-bg px-2 text-[11px] outline-none focus:border-accent"
+              >
+                {BASES.map((base) => <option key={base.value} value={base.value}>{base.label}</option>)}
+              </select>
+            }
+          />
+          <div className={`relative min-h-0 flex-1 overflow-hidden ${error ? 'border-l-2 border-[var(--red)]' : ''}`}>
+            <textarea
+              readOnly
+              value={output}
+              className={`h-full w-full resize-none bg-transparent p-4 font-mono text-sm leading-6 placeholder:text-text-secondary focus:outline-none ${
+                error ? 'text-[var(--red)]' : 'text-accent'
+              }`}
+              placeholder="Result will appear here..."
+            />
+            {output && !error && (
+              <ToolButton
+                onClick={handleCopy}
+                icon={copyFeedback ? <CheckCircle2 /> : <Copy />}
+                variant="primary"
+                className="absolute bottom-4 right-4"
+              >
+                {copyFeedback ? 'Copied' : 'Copy'}
+              </ToolButton>
             )}
           </div>
-          <div className={`flex-1 bg-panel-bg rounded-lg border overflow-hidden relative group transition-colors ${
-            error ? 'border-red-900/50' : 'border-border-base'
-          }`}>
-             <textarea 
-               readOnly
-               value={output}
-               className={`w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 focus:outline-none ${
-                 error ? 'text-red-400' : 'text-accent'
-               } placeholder-text-secondary`}
-               placeholder="Result will appear here..."
-            />
-             
-             {output && !error && (
-                <button 
-                  onClick={handleCopy}
-                  className="absolute bottom-4 right-4 bg-element-bg hover:brightness-110 text-text-primary px-4 py-2 rounded-md shadow-lg border border-border-base flex items-center space-x-2 transition-all active:scale-95"
-                >
-                  {copyFeedback ? <CheckCircle2 size={16} className="text-green-500" /> : <Copy size={16} />}
-                  <span className="text-sm font-medium">{copyFeedback ? 'Copied' : 'Copy'}</span>
-                </button>
-             )}
-          </div>
-        </div>
-
+        </ToolPane>
       </div>
-    </div>
+    </ToolShell>
   );
 };

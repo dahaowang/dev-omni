@@ -25,7 +25,7 @@ import { OcrTool } from './components/tools/OcrTool';
 import { PlaceholderTool } from './components/tools/PlaceholderTool';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { analyzeClipboard } from './utils/clipboardDetection';
-import { Wand2 } from 'lucide-react';
+import { ChevronRight, Sparkles, Wand2, X } from 'lucide-react';
 
 // --- Configuration ---
 
@@ -53,17 +53,61 @@ const TOOL_LABELS: Record<string, string> = {
   ocr: 'OCR'
 };
 
+const TOOL_CATEGORIES: Record<string, string> = {
+  json: 'converters',
+  jwt: 'converters',
+  yaml: 'converters',
+  sql: 'converters',
+  ocr: 'converters',
+  number: 'converters',
+  'image-base64': 'converters',
+  url: 'converters',
+  base64: 'converters',
+  cron: 'generators',
+  uuid: 'generators',
+  qrcode: 'generators',
+  timestamp: 'generators',
+  color: 'generators',
+  'random-string': 'generators',
+  hash: 'generators',
+  'case-converter': 'text',
+  regex: 'text',
+  'text-joiner': 'text',
+  diff: 'text',
+  dedupe: 'text'
+};
+
 // --- Toast Component ---
 const Toast: React.FC<{ message: string, onClose: () => void }> = ({ message, onClose }) => (
-  <div className="fixed bottom-6 right-6 z-50 bg-panel-bg border border-accent/20 shadow-lg rounded-lg p-3 flex items-center gap-3 animate-fade-in pr-8">
-     <div className="bg-accent/10 p-1.5 rounded-full text-accent">
-       <Wand2 size={16} />
-     </div>
-     <span className="text-sm font-medium text-text-primary">{message}</span>
-     <button onClick={onClose} className="absolute top-2 right-2 text-text-secondary hover:text-text-primary">
-       <span className="sr-only">Close</span>
-       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-     </button>
+  <div className="fixed bottom-10 right-4 z-50 flex min-w-[280px] max-w-[360px] animate-fade-in items-start gap-2.5 rounded-[var(--radius)] border border-border-hover bg-panel-bg p-3 pr-9 shadow-[var(--shadow-md)]">
+    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/15 text-accent">
+      <Wand2 size={14} />
+    </div>
+    <div className="min-w-0">
+      <div className="text-xs font-semibold text-text-primary">Smart paste</div>
+      <div className="mt-0.5 text-[11.5px] leading-5 text-text-secondary">{message.replace('Smart Paste: ', '')}</div>
+    </div>
+    <button onClick={onClose} className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-md text-text-secondary hover:bg-hover-overlay hover:text-text-primary">
+      <span className="sr-only">Close</span>
+      <X size={12} />
+    </button>
+  </div>
+);
+
+const TitleBar: React.FC<{ activeTool: ToolType }> = ({ activeTool }) => (
+  <div className="electron-drag flex h-[38px] shrink-0 items-center gap-2 border-b border-border-base bg-sidebar-bg px-3">
+    <div className="flex items-center gap-1.5 font-mono text-xs text-text-secondary">
+      <span>workspace</span>
+      <ChevronRight size={11} />
+      <span>{TOOL_CATEGORIES[activeTool] || 'tools'}</span>
+      <ChevronRight size={11} />
+      <b className="font-medium text-text-primary">{TOOL_LABELS[activeTool] || activeTool}</b>
+    </div>
+    <div className="ml-auto flex shrink-0 items-center gap-2 rounded-full border border-border-base bg-panel-bg py-1 pl-2 pr-2.5 text-[11px] text-text-secondary">
+      <Sparkles size={11} />
+      <span className="hidden whitespace-nowrap sm:inline">watching clipboard</span>
+      <span className="rounded border border-border-hover bg-element-bg px-1.5 py-px font-mono text-[10px] text-text-secondary">⌥⌘V</span>
+    </div>
   </div>
 );
 
@@ -73,7 +117,7 @@ const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ToolType>('json');
   const [visitedTools, setVisitedTools] = useState<ToolType[]>(['json']);
   const [toolResetKeys, setToolResetKeys] = useState<Partial<Record<ToolType, number>>>({});
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarRail, setIsSidebarRail] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Smart Paste State
@@ -160,8 +204,8 @@ const App: React.FC = () => {
     const initialValue = (smartPasteData && smartPasteData.tool === toolId) ? smartPasteData.content : undefined;
 
     const commonProps = {
-      isSidebarOpen,
-      toggleSidebar: () => setIsSidebarOpen(!isSidebarOpen),
+      isSidebarOpen: true,
+      toggleSidebar: () => setIsSidebarRail(false),
       toolLabel: TOOL_LABELS[toolId] || toolId,
       initialValue
     };
@@ -215,27 +259,32 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-screen w-full bg-app-bg text-text-primary font-sans overflow-hidden selection:bg-accent/30 relative">
+    <div className="relative flex h-screen w-full flex-1 flex-col overflow-hidden bg-app-bg font-sans text-text-primary selection:bg-accent/30">
       <div className="flex flex-row h-full">
         <Sidebar 
           activeTool={activeTool} 
           setActiveTool={setActiveTool} 
-          isOpen={isSidebarOpen}
-          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          isRail={isSidebarRail}
+          toggleSidebar={() => setIsSidebarRail(prev => !prev)}
           onSettingsClick={() => setIsSettingsOpen(true)}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
           onSmartPaste={() => handleSmartPaste(false)} // Manual trigger always processes
         />
-        
-        {visitedTools.map(toolId => (
-          <div
-            key={`${toolId}-${toolResetKeys[toolId] || 0}`}
-            className={`flex-1 flex-col h-full overflow-hidden ${toolId === activeTool ? 'flex animate-slide-up-fade' : 'hidden'}`}
-          >
-            {renderTool(toolId)}
+
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-app-bg">
+          <TitleBar activeTool={activeTool} />
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {visitedTools.map(toolId => (
+              <div
+                key={`${toolId}-${toolResetKeys[toolId] || 0}`}
+                className={`h-full flex-1 flex-col overflow-hidden ${toolId === activeTool ? 'flex animate-slide-up-fade' : 'hidden'}`}
+              >
+                {renderTool(toolId)}
+              </div>
+            ))}
           </div>
-        ))}
+        </main>
       </div>
       
       <SettingsModal 

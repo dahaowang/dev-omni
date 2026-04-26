@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  PanelLeft, 
   Copy, 
   CheckCircle2, 
   Palette,
   Pipette,
   ChevronDown
 } from 'lucide-react';
+import {
+  PaneHeader,
+  StatusBadge,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface ColorPickerToolProps {
   isSidebarOpen: boolean;
@@ -194,162 +201,116 @@ export const ColorPickerTool: React.FC<ColorPickerToolProps> = ({ isSidebarOpen,
   const paletteColors = getPalette();
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-                title="Open Sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-          </div>
-        </div>
-      </div>
+    <ToolShell>
+      <ToolHeader icon={<Palette />} title={toolLabel} subtitle="HEX · RGB · HSL · CMYK · palette">
+        <StatusBadge>{color.toUpperCase()}</StatusBadge>
+        <ToolButton onClick={triggerColorPicker} icon={<Pipette />}>
+          Pick color
+        </ToolButton>
+      </ToolHeader>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-6">
-          
-          {/* Left Column: Visual Picker */}
-          <div className="w-full md:w-1/3 flex flex-col gap-4">
-             <div 
-               className="aspect-square rounded-2xl shadow-lg border border-border-base relative group overflow-hidden cursor-pointer transition-transform active:scale-[0.99]"
-               style={{ backgroundColor: color }}
-               onClick={triggerColorPicker}
-             >
-                {/* Overlay Text */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-[2px]">
-                   <Pipette className="text-white mb-2" size={32} />
-                   <span className="text-white font-medium text-sm drop-shadow-md">Click to Change</span>
-                </div>
-                
-                {/* Hidden Native Picker */}
-                <input 
-                  ref={colorInputRef}
-                  type="color" 
-                  value={color} 
-                  onChange={handleColorChange} 
-                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" 
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_320px]">
+        <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+          <PaneHeader title="Canvas" meta={paletteType.replace('-', ' ')} />
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+            <div
+              className="group relative h-[220px] cursor-pointer overflow-hidden rounded-[var(--radius-lg)] border border-border-base shadow-[var(--shadow-md)] transition-transform active:scale-[0.995]"
+              style={{
+                background: `linear-gradient(135deg, ${color}, color-mix(in oklab, ${color} 50%, #000))`
+              }}
+              onClick={triggerColorPicker}
+            >
+              <div className="absolute left-[62%] top-[38%] h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_2px_rgba(0,0,0,0.4)]" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/15 opacity-0 transition-opacity group-hover:opacity-100">
+                <Pipette className="text-white drop-shadow" size={30} />
+              </div>
+              <input
+                ref={colorInputRef}
+                type="color"
+                value={color}
+                onChange={handleColorChange}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </div>
+
+            <div className="grid grid-cols-5 gap-2">
+              {paletteColors.map((c, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="group relative aspect-square overflow-hidden rounded-[var(--radius-sm)] border border-border-base transition-transform hover:scale-[1.03]"
+                  style={{ backgroundColor: c }}
+                  onClick={() => handleCopy(c, `p-${i}`)}
+                  title={c}
+                >
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/40 font-mono text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    {copyFeedback === `p-${i}` ? <CheckCircle2 size={15} /> : c}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="rounded-[var(--radius)] border border-border-base bg-panel-bg p-4">
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fg-3)]">Manual Hex</label>
+              <div className="flex h-8 items-center gap-2 rounded-[var(--radius-sm)] border border-border-base bg-input-bg px-2 font-mono text-sm">
+                <span className="h-4 w-4 rounded-full border border-border-base" style={{ backgroundColor: color }} />
+                <input
+                  type="text"
+                  defaultValue={color}
+                  key={color}
+                  onBlur={handleManualHexChange}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleManualHexChange(e as any);
+                  }}
+                  placeholder="#RRGGBB"
+                  className="min-w-0 flex-1 bg-transparent uppercase outline-none"
                 />
-             </div>
-
-             {/* Manual Hex Input */}
-             <div className="bg-panel-bg rounded-lg border border-border-base p-4">
-               <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 block">Manual Hex</label>
-               <div className="flex items-center space-x-2">
-                 <div className="w-4 h-4 rounded-full border border-border-base" style={{backgroundColor: color}}></div>
-                 <input 
-                   type="text" 
-                   defaultValue={color}
-                   // Use key to force re-render if color changes externally
-                   key={color}
-                   onBlur={handleManualHexChange}
-                   onKeyDown={(e) => {
-                       if (e.key === 'Enter') handleManualHexChange(e as any);
-                   }}
-                   placeholder="#RRGGBB"
-                   className="flex-1 bg-transparent text-text-primary font-mono text-sm focus:outline-none uppercase"
-                 />
-               </div>
-             </div>
+              </div>
+            </div>
           </div>
+        </ToolPane>
 
-          {/* Right Column: Formats & Palette */}
-          <div className="flex-1 flex flex-col gap-4">
-            
-             <div className="grid grid-cols-1 gap-3">
-               {formats.map((fmt, idx) => (
-                 <div 
-                   key={idx} 
-                   className="group bg-panel-bg border border-border-base rounded-lg p-4 flex items-center justify-between hover:border-accent/50 transition-colors"
-                 >
-                   <div className="min-w-0 flex-1 mr-4">
-                      <div className="text-[10px] text-text-secondary font-bold uppercase tracking-wider mb-1">
-                        {fmt.label}
-                      </div>
-                      <div className="font-mono text-base text-text-primary truncate select-all">
-                        {fmt.value}
-                      </div>
-                   </div>
-                   
-                   <button
-                     onClick={() => handleCopy(fmt.value, fmt.label)}
-                     className="p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-element-bg border border-transparent hover:border-border-base transition-all active:scale-95 shrink-0"
-                     title="Copy"
-                   >
-                     {copyFeedback === fmt.label ? (
-                       <CheckCircle2 size={18} className="text-green-500" />
-                     ) : (
-                       <Copy size={18} />
-                     )}
-                   </button>
-                 </div>
-               ))}
-             </div>
-
-             {/* Palette Generator */}
-             <div className="bg-panel-bg border border-border-base rounded-lg p-4 flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center space-x-2">
-                      <Palette size={16} className="text-accent" />
-                      <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Palette Generator</span>
-                   </div>
-                   
-                   {/* Palette Type Selector */}
-                   <div className="relative group">
-                      <select 
-                        value={paletteType}
-                        onChange={(e) => setPaletteType(e.target.value as PaletteType)}
-                        className="appearance-none bg-element-bg text-text-primary text-xs font-medium rounded px-3 py-1.5 pr-8 border border-border-base focus:border-accent outline-none cursor-pointer"
-                      >
-                         <option value="analogous">Analogous</option>
-                         <option value="monochromatic">Monochromatic</option>
-                         <option value="complementary">Complementary</option>
-                         <option value="split-complementary">Split Complementary</option>
-                         <option value="triadic">Triadic</option>
-                      </select>
-                      <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-                   </div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2 h-16">
-                  {paletteColors.map((c, i) => (
-                     <div 
-                       key={i}
-                       className="group relative rounded-md cursor-pointer hover:scale-[1.05] transition-transform shadow-sm border border-border-base overflow-hidden"
-                       style={{ backgroundColor: c }}
-                       onClick={() => handleCopy(c, `p-${i}`)}
-                     >
-                       {/* Hover Overlay */}
-                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {copyFeedback === `p-${i}` ? (
-                            <CheckCircle2 size={16} className="text-white" />
-                          ) : (
-                            <span className="text-[10px] text-white font-mono font-medium">{c}</span>
-                          )}
-                       </div>
-                     </div>
-                  ))}
-                </div>
-                <div className="text-[10px] text-text-secondary text-center">
-                   Click any color in the generated palette to copy its HEX code.
-                </div>
-             </div>
-
+        <ToolPane className="bg-sidebar-bg">
+          <PaneHeader
+            title="Values"
+            meta="copy formats"
+            actions={
+              <div className="relative">
+                <select
+                  value={paletteType}
+                  onChange={(e) => setPaletteType(e.target.value as PaletteType)}
+                  className="h-[24px] appearance-none rounded-[var(--radius-sm)] border border-border-base bg-element-bg pl-2 pr-7 text-[11px] font-medium outline-none focus:border-accent"
+                >
+                  <option value="analogous">Analogous</option>
+                  <option value="monochromatic">Monochromatic</option>
+                  <option value="complementary">Complementary</option>
+                  <option value="split-complementary">Split Complementary</option>
+                  <option value="triadic">Triadic</option>
+                </select>
+                <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary" />
+              </div>
+            }
+          />
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
+            {formats.map((fmt) => (
+              <div
+                key={fmt.label}
+                className="grid grid-cols-[72px_1fr_auto] items-center gap-2 rounded-[var(--radius)] border border-border-base bg-panel-bg px-3 py-2"
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fg-3)]">{fmt.label}</span>
+                <span className="truncate font-mono text-xs text-text-primary" title={fmt.value}>{fmt.value}</span>
+                <ToolButton
+                  onClick={() => handleCopy(fmt.value, fmt.label)}
+                  icon={copyFeedback === fmt.label ? <CheckCircle2 /> : <Copy />}
+                  variant="ghost"
+                  className="px-2"
+                  title="Copy"
+                />
+              </div>
+            ))}
           </div>
-
-        </div>
+        </ToolPane>
       </div>
-    </div>
+    </ToolShell>
   );
 };

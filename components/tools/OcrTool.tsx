@@ -1,17 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  PanelLeft, 
-  Upload, 
-  Image as ImageIcon, 
-  Trash2, 
-  Copy, 
-  CheckCircle2, 
-  RefreshCw,
-  Settings2,
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  FileText,
+  Image as ImageIcon,
   Play,
-  AlertCircle
+  RefreshCw,
+  ScanText,
+  Trash2,
+  Upload
 } from 'lucide-react';
+// @ts-ignore
+import { createWorker, PSM } from 'tesseract.js';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
+import {
+  CheckerboardSurface,
+  GroupTitle,
+  IconButton,
+  MetricCard,
+  PaneHeader,
+  StatusBadge,
+  StatusBar,
+  ToolBody,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface OcrToolProps {
   isSidebarOpen: boolean;
@@ -19,205 +35,309 @@ interface OcrToolProps {
   toolLabel: string;
 }
 
-interface AIModel {
-  id: string;
-  name: string;
-}
+type TesseractWorker = Awaited<ReturnType<typeof createWorker>>;
+type OcrLanguageMode = 'auto' | 'eng' | 'chi_sim';
 
-type ProviderType = 'ollama' | 'lm-studio';
+const OCR_LANG_VERSION = '4.0.0_best_int';
 
-const PROVIDERS: Record<ProviderType, { label: string, defaultHost: string }> = {
-  'ollama': { label: 'Ollama', defaultHost: 'http://localhost:11434' },
-  'lm-studio': { label: 'LM Studio', defaultHost: 'http://localhost:1234' }
+const OCR_LANGUAGE_OPTIONS: Array<{
+  id: OcrLanguageMode;
+  label: string;
+  workerLanguage: string;
+  engineLabel: string;
+  dataLabel: string;
+}> = [
+  { id: 'auto', label: 'Auto', workerLanguage: 'eng+chi_sim', engineLabel: 'Auto · eng+chi_sim', dataLabel: 'eng+chi_sim' },
+  { id: 'eng', label: 'EN', workerLanguage: 'eng', engineLabel: 'English · eng', dataLabel: 'eng' },
+  { id: 'chi_sim', label: '中文', workerLanguage: 'chi_sim', engineLabel: 'Chinese · chi_sim', dataLabel: 'chi_sim' }
+];
+
+const getOcrAssetUrl = (relativePath: string) => new URL(relativePath, window.location.href).href.replace(/\/$/, '');
+
+const OCR_STAGES = [
+  {
+    key: 'starting-worker',
+    label: 'Starting worker',
+    description: 'Creating the browser Worker'
+  },
+  {
+    key: 'loading tesseract core',
+    label: 'Loading Tesseract core',
+    description: 'Fetching or reading the WASM runtime'
+  },
+  {
+    key: 'initializing tesseract',
+    label: 'Initializing Tesseract',
+    description: 'Booting the OCR runtime'
+  },
+  {
+    key: 'loading language traineddata',
+    label: 'Loading traineddata',
+    description: 'Reading local language data'
+  },
+  {
+    key: 'initializing api',
+    label: 'Initializing OCR API',
+    description: 'Preparing the language model'
+  },
+  {
+    key: 'recognizing text',
+    label: 'Recognizing text',
+    description: 'Scanning the selected image'
+  }
+];
+
+const OVERALL_PROGRESS: Record<string, { start: number; weight: number }> = {
+  'starting-worker': { start: 0.03, weight: 0.04 },
+  'loading tesseract core': { start: 0.08, weight: 0.18 },
+  'initializing tesseract': { start: 0.28, weight: 0.08 },
+  'loading language traineddata': { start: 0.38, weight: 0.3 },
+  'initializing api': { start: 0.7, weight: 0.1 },
+  'recognizing text': { start: 0.82, weight: 0.18 },
+  'worker ready': { start: 0.8, weight: 0 },
+  done: { start: 1, weight: 0 },
+  failed: { start: 0, weight: 0 }
 };
 
-export const OcrTool: React.FC<OcrToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
-  // Config State
-  const [provider, setProvider] = useState<ProviderType>('ollama');
-  const [host, setHost] = useState(PROVIDERS['ollama'].defaultHost);
-  const [showConfig, setShowConfig] = useState(true);
-  
-  // Model State
-  const [models, setModels] = useState<AIModel[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string>('');
-  
-  // Data State
+const clampProgress = (value: number) => Math.max(0, Math.min(1, value));
+
+const getOverallProgress = (key: string, stageProgress: number | null) => {
+  const range = OVERALL_PROGRESS[key] || { start: 0.05, weight: 0 };
+  return clampProgress(range.start + (stageProgress ?? 0) * range.weight);
+};
+
+const getStageMeta = (key: string, languageLabel: string) => {
+  if (key === 'worker ready') {
+    return {
+      key,
+      label: 'Worker ready',
+      description: `${languageLabel} language data loaded`
+    };
+  }
+  if (key === 'done') {
+    return {
+      key,
+      label: 'Done',
+      description: 'OCR completed'
+    };
+  }
+  if (key === 'failed') {
+    return {
+      key,
+      label: 'Failed',
+      description: 'OCR stopped with an error'
+    };
+  }
+  return OCR_STAGES.find((stage) => stage.key === key) || {
+    key,
+    label: key || 'Idle',
+    description: ''
+  };
+};
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+};
+
+const getWordCount = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
+
+const nextPaint = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+const getErrorMessage = (err: unknown) => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'OCR failed';
+};
+
+const getLanguageOption = (languageMode: OcrLanguageMode) =>
+  OCR_LANGUAGE_OPTIONS.find((option) => option.id === languageMode) || OCR_LANGUAGE_OPTIONS[0];
+
+interface StageEvent {
+  progress: number | null;
+  updatedAt: number;
+}
+
+export const OcrTool: React.FC<OcrToolProps> = ({ toolLabel }) => {
   const [imageData, setImageData] = useState<string | null>(null);
-  const [outputText, setOutputText] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imageDimensions, setImageDimensions] = useState<string | null>(null);
+  const [outputText, setOutputText] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [stageProgress, setStageProgress] = useState<number | null>(0);
+  const [stageEvents, setStageEvents] = useState<Record<string, StageEvent>>({});
+  const [status, setStatus] = useState('idle');
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [confidence, setConfidence] = useState<number | null>(null);
+  const [languageMode, setLanguageMode] = useState<OcrLanguageMode>('auto');
   const [error, setError] = useState<string | null>(null);
-  
   const [copyFeedback, setCopyFeedback] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const workerRef = useRef<TesseractWorker | null>(null);
+  const workerLanguageRef = useRef<string | null>(null);
+  const startedAtRef = useRef<number | null>(null);
 
-  // Initialize
   useEffect(() => {
-    fetchModels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider]); // Refresh when provider changes
+    return () => {
+      workerRef.current?.terminate();
+      workerRef.current = null;
+      workerLanguageRef.current = null;
+    };
+  }, []);
 
-  // Update default host when provider changes (optional UX)
-  const handleProviderChange = (newProvider: ProviderType) => {
-    setProvider(newProvider);
-    setHost(PROVIDERS[newProvider].defaultHost);
-    setOutputText('');
-    setError(null);
+  useEffect(() => {
+    if (!isProcessing || !startedAt) return undefined;
+
+    const interval = window.setInterval(() => {
+      setElapsedMs(Date.now() - startedAt);
+    }, 250);
+
+    return () => window.clearInterval(interval);
+  }, [isProcessing, startedAt]);
+
+  const updateStage = (key: string, nextStageProgress: number | null) => {
+    const normalizedProgress = typeof nextStageProgress === 'number' ? clampProgress(nextStageProgress) : null;
+    setStatus(key);
+    setStageProgress(normalizedProgress);
+    setProgress(getOverallProgress(key, normalizedProgress));
+    setStageEvents((current) => ({
+      ...current,
+      [key]: {
+        progress: normalizedProgress,
+        updatedAt: Date.now()
+      }
+    }));
   };
 
-  // Fetch Models
-  const fetchModels = async () => {
-    setError(null);
-    setModels([]);
-    setSelectedModel('');
-    
-    try {
-      if (provider === 'ollama') {
-        const response = await fetch(`${host}/api/tags`);
-        if (!response.ok) throw new Error(`Failed to connect to Ollama at ${host}`);
-        
-        const data = await response.json();
-        if (data.models && Array.isArray(data.models)) {
-          const mappedModels = data.models.map((m: any) => ({ id: m.name, name: m.name }));
-          setModels(mappedModels);
-          autoSelectModel(mappedModels);
-        }
-      } else if (provider === 'lm-studio') {
-        const response = await fetch(`${host}/v1/models`);
-        if (!response.ok) throw new Error(`Failed to connect to LM Studio at ${host}`);
-        
-        const data = await response.json();
-        // LM Studio / OpenAI format: { data: [{ id: "model-name", ... }] }
-        if (data.data && Array.isArray(data.data)) {
-           const mappedModels = data.data.map((m: any) => ({ id: m.id, name: m.id }));
-           setModels(mappedModels);
-           autoSelectModel(mappedModels);
+  const getWorker = async (workerLanguage: string) => {
+    if (workerRef.current && workerLanguageRef.current === workerLanguage) {
+      updateStage('worker ready', 1);
+      return workerRef.current;
+    }
+
+    if (workerRef.current) {
+      await workerRef.current.terminate();
+      workerRef.current = null;
+      workerLanguageRef.current = null;
+    }
+
+    updateStage('starting-worker', null);
+    const worker = await createWorker(workerLanguage, 1, {
+      workerPath: getOcrAssetUrl('ocr/worker.min.js'),
+      corePath: getOcrAssetUrl('ocr/core'),
+      langPath: getOcrAssetUrl(`ocr/lang/${OCR_LANG_VERSION}`),
+      workerBlobURL: false,
+      logger: (message) => {
+        if (message.status) {
+          updateStage(message.status, typeof message.progress === 'number' ? message.progress : null);
         }
       }
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
+    });
 
-  const autoSelectModel = (availableModels: AIModel[]) => {
-    if (availableModels.length === 0) return;
-    
-    // Simple heuristic to prefer vision/ocr models if present
-    const visionModel = availableModels.find(m => 
-        m.name.toLowerCase().includes('ocr') || 
-        m.name.toLowerCase().includes('vision') || 
-        m.name.toLowerCase().includes('llava')
-    );
-    setSelectedModel(visionModel ? visionModel.id : availableModels[0].id);
-  };
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.AUTO,
+      preserve_interword_spaces: '1'
+    });
 
-  // Image Handling
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-    e.target.value = ''; // Reset
+    workerRef.current = worker;
+    workerLanguageRef.current = workerLanguage;
+    updateStage('worker ready', 1);
+    return worker;
   };
 
   const processFile = (file: File) => {
     const reader = new FileReader();
-    reader.onload = (evt) => {
-      setImageData(evt.target?.result as string);
-      setOutputText(''); // Clear previous result
+    reader.onload = (event) => {
+      const value = event.target?.result as string;
+      setImageData(value);
+      setSelectedFile(file);
+      setOutputText('');
+      setError(null);
+      setConfidence(null);
+      setProgress(0);
+      setStageProgress(0);
+      setStageEvents({});
+      setStartedAt(null);
+      startedAtRef.current = null;
+      setElapsedMs(0);
+      setStatus('ready');
+
+      const image = new Image();
+      image.onload = () => setImageDimensions(`${image.width} x ${image.height}`);
+      image.src = value;
     };
     reader.readAsDataURL(file);
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) processFile(file);
+    event.target.value = '';
+  };
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = event.clipboardData.items;
+    for (let index = 0; index < items.length; index += 1) {
+      if (items[index].type.includes('image')) {
+        const file = items[index].getAsFile();
         if (file) processFile(file);
         break;
       }
     }
   };
 
-  // Run OCR
+  const clearImage = () => {
+    setImageData(null);
+    setSelectedFile(null);
+    setImageDimensions(null);
+    setOutputText('');
+    setError(null);
+    setConfidence(null);
+    setProgress(0);
+    setStageProgress(0);
+    setStageEvents({});
+    setStartedAt(null);
+    startedAtRef.current = null;
+    setElapsedMs(0);
+    setStatus('idle');
+  };
+
   const handleOcr = async () => {
-    if (!imageData || !selectedModel) return;
-    
-    setIsLoading(true);
+    if (!imageData) return;
+
+    setIsProcessing(true);
     setError(null);
     setOutputText('');
+    setConfidence(null);
+    setProgress(0);
+    setStageProgress(0);
+    setStageEvents({});
+    startedAtRef.current = Date.now();
+    setStartedAt(startedAtRef.current);
+    setElapsedMs(0);
+    updateStage('starting-worker', null);
 
     try {
-      let resultText = '';
-      
-      if (provider === 'ollama') {
-         // Ollama Native API
-         // Requires raw base64 without data uri prefix
-         const base64Image = imageData.split(',')[1];
-         
-         const payload = {
-            model: selectedModel,
-            messages: [
-               {
-                  role: 'user',
-                  content: 'Please recognize and extract all text from this image. Output only the text content.',
-                  images: [base64Image]
-               }
-            ],
-            stream: false
-         };
+      await nextPaint();
+      const worker = await getWorker(getLanguageOption(languageMode).workerLanguage);
+      updateStage('recognizing text', 0);
+      const result = await worker.recognize(imageData, { rotateAuto: true });
+      const text = result.data.text.trim();
 
-         const response = await fetch(`${host}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-         });
-         
-         if (!response.ok) throw new Error(`Ollama API Error: ${response.statusText}`);
-         const data = await response.json();
-         resultText = data.message?.content || '';
-
-      } else if (provider === 'lm-studio') {
-         // OpenAI Compatible API
-         // Supports passing Data URI directly
-         const payload = {
-            model: selectedModel,
-            messages: [
-               {
-                  role: 'user',
-                  content: [
-                     { type: 'text', text: 'Please recognize and extract all text from this image. Output only the text content.' },
-                     { 
-                        type: 'image_url', 
-                        image_url: { 
-                           url: imageData // Data URI is supported
-                        } 
-                     }
-                  ]
-               }
-            ],
-            stream: false
-         };
-
-         const response = await fetch(`${host}/v1/chat/completions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-         });
-
-         if (!response.ok) throw new Error(`LM Studio API Error: ${response.statusText}`);
-         const data = await response.json();
-         resultText = data.choices?.[0]?.message?.content || '';
-      }
-
-      if (resultText) {
-        setOutputText(resultText);
-      } else {
-        setOutputText('(No text returned)');
-      }
-
+      setOutputText(text || '(No text found)');
+      setConfidence(typeof result.data.confidence === 'number' ? result.data.confidence : null);
+      updateStage('done', 1);
     } catch (err) {
-      setError((err as Error).message);
+      setError(getErrorMessage(err));
+      updateStage('failed', null);
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
+      if (startedAtRef.current) {
+        setElapsedMs(Date.now() - startedAtRef.current);
+      }
     }
   };
 
@@ -225,195 +345,213 @@ export const OcrTool: React.FC<OcrToolProps> = ({ isSidebarOpen, toggleSidebar, 
     if (!outputText) return;
     navigator.clipboard.writeText(outputText);
     setCopyFeedback(true);
-    setTimeout(() => setCopyFeedback(false), 2000);
+    setTimeout(() => setCopyFeedback(false), 1500);
   };
 
+  const wordCount = getWordCount(outputText);
+  const lineCount = outputText ? outputText.split('\n').length : 0;
+  const progressPercent = Math.round(progress * 100);
+  const stagePercent = stageProgress === null ? null : Math.round(stageProgress * 100);
+  const selectedLanguage = getLanguageOption(languageMode);
+  const currentStage = getStageMeta(status, selectedLanguage.dataLabel);
+  const currentStageIndex = OCR_STAGES.findIndex((stage) => stage.key === status);
+  const elapsedSeconds = (elapsedMs / 1000).toFixed(1);
+
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary" onPaste={handlePaste}>
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-                title="Open Sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
+    <ToolShell onPaste={handlePaste}>
+      <ToolHeader icon={<ScanText />} title={toolLabel} subtitle="Tesseract.js · image to text">
+        <StatusBadge tone={error ? 'bad' : outputText ? 'ok' : 'neutral'}>{error ? 'ERROR' : isProcessing ? `${progressPercent}%` : outputText ? 'DONE' : 'READY'}</StatusBadge>
+        <ToolButton icon={isProcessing ? <RefreshCw className="animate-spin" /> : <Play />} onClick={handleOcr} disabled={!imageData || isProcessing} variant="primary">
+          {isProcessing ? 'Processing' : 'Run OCR'}
+        </ToolButton>
+        <ToolButton icon={copyFeedback ? <CheckCircle2 /> : <Copy />} onClick={handleCopy} disabled={!outputText}>
+          {copyFeedback ? 'Copied' : 'Copy'}
+        </ToolButton>
+      </ToolHeader>
+
+      <ToolBody className="grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_300px]">
+        <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+          <PaneHeader
+            title="Source image"
+            meta={selectedFile ? selectedFile.type || 'image' : 'waiting'}
+            actions={
+              <>
+                <ToolButton icon={<Upload />} onClick={() => fileInputRef.current?.click()}>
+                  Choose
+                </ToolButton>
+                <IconButton icon={<Trash2 />} onClick={clearImage} disabled={!imageData} title="Clear" />
+              </>
+            }
+          />
+          <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const file = event.dataTransfer.files?.[0];
+              if (file) processFile(file);
+            }}
+            className={`m-[18px] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-lg)] border text-text-secondary transition-colors ${
+              imageData
+                ? 'border-border-base bg-app-bg'
+                : 'items-center justify-center gap-3 border-dashed border-border-hover bg-sidebar-bg p-6 text-center hover:border-accent hover:text-text-primary'
+            }`}
+          >
+            {imageData ? (
+              <>
+                <CheckerboardSurface className="w-full">
+                  <img src={imageData} alt="OCR source" className="max-h-[320px] max-w-full rounded-lg object-contain shadow-[var(--shadow-sm)]" />
+                </CheckerboardSurface>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-border-base px-4 py-3 font-mono text-[11px] text-[var(--fg-3)]">
+                  <span>name <b className="font-medium text-text-primary">{selectedFile?.name || 'pasted image'}</b></span>
+                  {selectedFile && <span>size <b className="font-medium text-text-primary">{formatBytes(selectedFile.size)}</b></span>}
+                  {imageDimensions && <span>dimensions <b className="font-medium text-text-primary">{imageDimensions}</b></span>}
+                </div>
+              </>
+            ) : (
+              <>
+                <ImageIcon size={34} strokeWidth={1.4} />
+                <div>
+                  <div className="text-sm font-semibold text-text-primary">Drop or choose an image</div>
+                  <div className="mt-1 text-xs text-text-secondary">Paste from clipboard is supported.</div>
+                </div>
+              </>
+            )}
+          </button>
+        </ToolPane>
+
+        <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+          <PaneHeader
+            title="Output text"
+            meta={outputText ? `${wordCount} words` : 'empty'}
+            actions={<ToolButton icon={copyFeedback ? <CheckCircle2 /> : <Copy />} onClick={handleCopy} disabled={!outputText}>Copy</ToolButton>}
+          />
+          <div className="min-h-0 flex-1 bg-app-bg">
+            <LineNumberTextarea
+              readOnly
+              value={outputText}
+              placeholder="OCR result will appear here..."
+              spellCheck={false}
+              className="text-text-primary placeholder-text-secondary"
+            />
           </div>
-        </div>
+          <StatusBar>
+            <span>lines <b className="font-medium text-text-primary">{lineCount}</b></span>
+            <span>words <b className="font-medium text-text-primary">{wordCount}</b></span>
+            {confidence !== null && <span>confidence <b className="font-medium text-text-primary">{confidence.toFixed(1)}%</b></span>}
+          </StatusBar>
+        </ToolPane>
 
-        {/* Toolbar */}
-        <div className="flex items-center space-x-3 electron-no-drag">
-           <button 
-              onClick={() => setShowConfig(!showConfig)}
-              className={`p-1.5 rounded transition-colors ${showConfig ? 'text-accent bg-accent/10' : 'text-text-secondary hover:text-text-primary hover:bg-hover-overlay'}`}
-              title="Toggle Configuration"
-           >
-              <Settings2 size={16} />
-           </button>
-        </div>
-      </div>
-
-      {/* Configuration Bar */}
-      {showConfig && (
-        <div className="p-4 border-b border-border-base bg-sidebar-bg/50 shrink-0 flex flex-wrap gap-4 items-end animate-fade-in">
-           
-           <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
-              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Provider</label>
-              <select 
-                   value={provider}
-                   onChange={(e) => handleProviderChange(e.target.value as ProviderType)}
-                   className="w-full appearance-none bg-input-bg border border-border-base rounded px-3 py-1.5 text-sm focus:border-accent outline-none cursor-pointer"
-               >
-                  {Object.entries(PROVIDERS).map(([key, val]) => (
-                     <option key={key} value={key}>{val.label}</option>
-                  ))}
-               </select>
-           </div>
-
-           <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
-              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">API Host</label>
-              <input 
-                 type="text" 
-                 value={host}
-                 onChange={(e) => setHost(e.target.value)}
-                 className="w-full bg-input-bg border border-border-base rounded px-3 py-1.5 text-sm focus:border-accent outline-none font-mono"
-                 placeholder="http://localhost:..."
-              />
-           </div>
-           
-           <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
-              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex justify-between">
-                 <span>Model</span>
-                 <button onClick={fetchModels} title="Refresh Models" className="hover:text-accent transition-colors">
-                    <RefreshCw size={10} />
-                 </button>
-              </label>
-              <div className="relative">
-                 <select 
-                   value={selectedModel}
-                   onChange={(e) => setSelectedModel(e.target.value)}
-                   className="w-full appearance-none bg-input-bg border border-border-base rounded px-3 py-1.5 text-sm focus:border-accent outline-none cursor-pointer"
-                   disabled={models.length === 0}
-                 >
-                    {models.length === 0 && <option value="">No models found</option>}
-                    {models.map(m => (
-                       <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                 </select>
+        <ToolPane className="bg-sidebar-bg">
+          <PaneHeader title="Processing" />
+          <div className="min-h-0 flex-1 overflow-auto p-[18px]">
+            <GroupTitle className="mt-0">Engine</GroupTitle>
+            <div className="rounded-[var(--radius-sm)] border border-border-base bg-panel-bg p-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                <FileText size={15} className="text-accent" />
+                Tesseract.js
               </div>
-           </div>
-        </div>
-      )}
+              <div className="mt-1 font-mono text-[11px] text-text-secondary">Language · {selectedLanguage.engineLabel}</div>
+              <div className="mt-3 grid grid-cols-3 gap-1 rounded-[var(--radius-sm)] bg-element-bg p-1">
+                {OCR_LANGUAGE_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setLanguageMode(option.id)}
+                    disabled={isProcessing}
+                    className={`h-7 rounded-[var(--radius-sm)] px-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      languageMode === option.id
+                        ? 'bg-panel-bg text-text-primary shadow-[var(--shadow-sm)]'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
-        
-        {/* Left: Image Input */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg border border-border-base rounded-lg shadow-sm">
-           <div className="flex items-center justify-between p-3 border-b border-border-base bg-sidebar-bg/30">
-              <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Input Image</span>
-              <button onClick={() => { setImageData(null); setOutputText(''); }} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-                <Trash2 size={12} /> Clear
-              </button>
-           </div>
-           
-           <div className="flex-1 relative bg-panel-bg flex flex-col">
-              {imageData ? (
-                 <div className="flex-1 p-4 flex items-center justify-center bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0ib3BhY2l0eSI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMzMzIiBmaWxsLW9wYWNpdHk9IjAuMDUiIC8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4wNSIgLz48L3N2Zz4=')]">
-                    <img src={imageData} alt="Input" className="max-w-full max-h-full object-contain rounded shadow-lg" />
-                 </div>
-              ) : (
-                 <div 
-                   className="flex-1 flex flex-col items-center justify-center cursor-pointer hover:bg-hover-overlay transition-colors group border-2 border-transparent hover:border-accent/30 m-4 border-dashed rounded-xl"
-                   onClick={() => fileInputRef.current?.click()}
-                   onDragOver={(e) => e.preventDefault()}
-                   onDrop={(e) => {
-                     e.preventDefault();
-                     const file = e.dataTransfer.files?.[0];
-                     if (file) processFile(file);
-                   }}
-                 >
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handleFileChange}
-                    />
-                    <div className="mb-4 p-4 rounded-full bg-element-bg group-hover:bg-accent/10 transition-colors">
-                       <ImageIcon size={32} className="text-text-secondary group-hover:text-accent transition-colors" />
+            <GroupTitle>Status</GroupTitle>
+            <div className="rounded-[var(--radius-sm)] border border-border-base bg-panel-bg p-3">
+              <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-text-secondary">
+                <span>{currentStage.label}</span>
+                <span>{isProcessing ? `${progressPercent}% · ${elapsedSeconds}s` : `${progressPercent}%`}</span>
+              </div>
+              {currentStage.description && (
+                <div className="mt-1 text-[11px] leading-5 text-text-secondary">
+                  {currentStage.description}
+                  {stagePercent !== null && isProcessing && <span className="font-mono"> · step {stagePercent}%</span>}
+                </div>
+              )}
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-element-bg">
+                <div
+                  className={`h-full rounded-full transition-all ${error ? 'bg-[var(--red)]' : 'bg-[var(--accent)]'} ${isProcessing && progressPercent < 10 ? 'animate-pulse' : ''}`}
+                  style={{ width: `${Math.max(isProcessing ? 8 : 0, progressPercent)}%` }}
+                />
+              </div>
+            </div>
+
+            <GroupTitle>Resource loading</GroupTitle>
+            <div className="space-y-1.5">
+              {OCR_STAGES.map((stage, index) => {
+                const event = stageEvents[stage.key];
+                const isActive = status === stage.key;
+                const isDone = status === 'done' || (currentStageIndex > index && currentStageIndex !== -1) || event?.progress === 1;
+                const stageValue = event?.progress === null || event?.progress === undefined ? null : Math.round(event.progress * 100);
+
+                return (
+                  <div
+                    key={stage.key}
+                    className={`rounded-[var(--radius-sm)] border px-3 py-2 ${
+                      isActive
+                        ? 'border-[color-mix(in_oklab,var(--accent)_40%,var(--line))] bg-[color-mix(in_oklab,var(--accent)_8%,transparent)]'
+                        : 'border-border-base bg-panel-bg'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        {isDone ? (
+                          <CheckCircle2 size={13} className="shrink-0 text-[var(--green)]" />
+                        ) : isActive ? (
+                          <RefreshCw size={13} className="shrink-0 animate-spin text-accent" />
+                        ) : (
+                          <span className="h-[13px] w-[13px] shrink-0 rounded-full border border-border-base" />
+                        )}
+                        <span className="truncate text-xs font-medium text-text-primary">{stage.label}</span>
+                      </div>
+                      <span className="shrink-0 font-mono text-[10.5px] text-text-secondary">
+                        {isDone ? 'done' : stageValue === null ? (isActive ? 'working' : 'waiting') : `${stageValue}%`}
+                      </span>
                     </div>
-                    <div className="text-center">
-                       <h3 className="text-sm font-medium text-text-primary">Click or Drag Image Here</h3>
-                       <p className="text-xs text-text-secondary mt-1">Supports pasting from clipboard (Ctrl+V)</p>
-                    </div>
-                 </div>
-              )}
-           </div>
+                    <div className="mt-1 pl-[21px] text-[10.5px] leading-4 text-[var(--fg-3)]">{stage.description}</div>
+                  </div>
+                );
+              })}
+            </div>
 
-           <div className="p-4 border-t border-border-base bg-app-bg shrink-0">
-              <button
-                onClick={handleOcr}
-                disabled={!imageData || isLoading || !selectedModel}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-accent text-white rounded-md font-medium hover:bg-accent/90 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                 {isLoading ? (
-                    <>
-                       <RefreshCw size={16} className="animate-spin" />
-                       <span>Processing...</span>
-                    </>
-                 ) : (
-                    <>
-                       <Play size={16} />
-                       <span>Run OCR</span>
-                    </>
-                 )}
-              </button>
-              {error && (
-                 <div className="mt-2 text-xs text-red-400 flex items-center gap-1.5 justify-center">
-                    <AlertCircle size={12} />
-                    <span>{error}</span>
-                 </div>
-              )}
-           </div>
-        </div>
+            <div className="mt-3 rounded-[var(--radius-sm)] border border-border-base bg-panel-bg p-3 text-[11px] leading-5 text-text-secondary">
+              OCR resources are loaded from bundled assets. Selected data: <span className="font-mono text-text-primary">{selectedLanguage.dataLabel}</span>.
+            </div>
 
-        {/* Right: Text Output */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg border border-border-base rounded-lg shadow-sm">
-           <div className="flex items-center justify-between p-3 border-b border-border-base bg-sidebar-bg/30">
-              <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Output Text</span>
-              {outputText && (
-                 <button 
-                   onClick={handleCopy}
-                   className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
-                 >
-                   {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
-                   <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
-                 </button>
-              )}
-           </div>
-           
-           <div className="flex-1 overflow-hidden relative group bg-panel-bg">
-              <LineNumberTextarea
-                readOnly
-                value={outputText}
-                placeholder="OCR result will appear here..."
-                spellCheck={false}
-                className="text-text-primary placeholder-text-secondary"
-              />
-           </div>
-        </div>
+            {error && (
+              <div className="mt-3 flex gap-2 rounded-[var(--radius-sm)] border border-[color-mix(in_oklab,var(--red)_30%,var(--line))] bg-[color-mix(in_oklab,var(--red)_10%,transparent)] p-3 text-xs leading-5 text-[var(--red)]">
+                <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-      </div>
-    </div>
+            <GroupTitle>Result stats</GroupTitle>
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCard label="Words" value={wordCount} />
+              <MetricCard label="Lines" value={lineCount} />
+              <MetricCard label="Chars" value={outputText.length} />
+              <MetricCard label="Confidence" value={confidence === null ? 'n/a' : `${confidence.toFixed(0)}%`} />
+            </div>
+          </div>
+        </ToolPane>
+      </ToolBody>
+    </ToolShell>
   );
 };

@@ -1,19 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  PanelLeft, 
-  Download, 
-  Upload, 
-  Image as ImageIcon, 
-  ArrowRightLeft,
-  Copy,
+import React, { useEffect, useRef, useState } from 'react';
+import {
   CheckCircle2,
+  ClipboardPaste,
+  Copy,
+  Download,
+  Image as ImageIcon,
+  Palette,
+  QrCode as QrCodeIcon,
+  RefreshCw,
   ScanLine,
-  Palette
+  Trash2,
+  Upload
 } from 'lucide-react';
 // @ts-ignore
 import QRCode from 'qrcode';
 // @ts-ignore
 import jsQR from 'jsqr';
+import {
+  CheckerboardSurface,
+  Field,
+  FieldInput,
+  GroupTitle,
+  IconButton,
+  PaneHeader,
+  PresetPills,
+  SegmentedControl,
+  StatusBadge,
+  StatusBar,
+  ToolBody,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface QrCodeToolProps {
   isSidebarOpen: boolean;
@@ -22,38 +41,99 @@ interface QrCodeToolProps {
 }
 
 type Mode = 'generate' | 'read';
+type ErrorCorrection = 'L' | 'M' | 'Q' | 'H';
 
-export const QrCodeTool: React.FC<QrCodeToolProps> = ({ isSidebarOpen, toggleSidebar, toolLabel }) => {
+const QR_TEMPLATES = [
+  { label: 'URL', value: 'https://example.com' },
+  { label: 'WiFi WPA', value: 'WIFI:T:WPA;S:NetworkName;P:password;;' },
+  { label: 'vCard', value: 'BEGIN:VCARD\nVERSION:3.0\nFN:Dev Omni\nORG:DevOmni\nEND:VCARD' },
+  { label: 'Email', value: 'mailto:hello@example.com' },
+  { label: 'SMS', value: 'SMSTO:+15550123:Hello from DevOmni' },
+  { label: 'Geo', value: 'geo:37.7749,-122.4194' }
+];
+
+const FG_SWATCHES = ['#000000', '#1f1f26', '#4f46e5', '#16a34a', '#dd5a1f', '#c8364a'];
+const BG_SWATCHES = ['#ffffff', '#f6f5f2', '#fff4e0', '#e6efff', '#f3f0ff', '#0b0b0d'];
+
+const estimateDataUrlBytes = (dataUrl: string) => {
+  const payload = dataUrl.split(',')[1] || dataUrl;
+  return Math.round((payload.length * 3) / 4);
+};
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+};
+
+const ColorPicker: React.FC<{
+  label: string;
+  value: string;
+  swatches: string[];
+  onChange: (value: string) => void;
+}> = ({ label, value, swatches, onChange }) => (
+  <Field label={label} hint={value.toUpperCase()}>
+    <div className="flex flex-wrap gap-1.5">
+      {swatches.map((color) => (
+        <button
+          key={color}
+          type="button"
+          onClick={() => onChange(color)}
+          className={`h-6 w-6 rounded-[var(--radius-sm)] border border-border-base ${
+            color === value ? 'shadow-[0_0_0_2px_var(--accent)]' : ''
+          }`}
+          style={{ background: color }}
+          aria-label={`${label} ${color}`}
+        />
+      ))}
+      <div className="relative min-w-[96px] flex-1">
+        <FieldInput
+          value={value.replace('#', '')}
+          onChange={(event) => onChange(`#${event.target.value.replace(/^#/, '')}`)}
+          icon={<Palette />}
+          spellCheck={false}
+        />
+        <input
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          aria-label={`${label} color`}
+        />
+      </div>
+    </div>
+  </Field>
+);
+
+export const QrCodeTool: React.FC<QrCodeToolProps> = ({ toolLabel }) => {
   const [mode, setMode] = useState<Mode>('generate');
-  
-  // Generator State
   const [inputText, setInputText] = useState('https://example.com');
   const [qrImage, setQrImage] = useState<string>('');
-  const [fgColor, setFgColor] = useState<string>('#000000');
-  const [bgColor, setBgColor] = useState<string>('#ffffff');
-  
-  // Reader State
-  const [scannedText, setScannedText] = useState<string>('');
+  const [fgColor, setFgColor] = useState('#000000');
+  const [bgColor, setBgColor] = useState('#ffffff');
+  const [size, setSize] = useState(512);
+  const [margin, setMargin] = useState(2);
+  const [errorCorrection, setErrorCorrection] = useState<ErrorCorrection>('M');
+  const [scannedText, setScannedText] = useState('');
   const [readerError, setReaderError] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [copyFeedback, setCopyFeedback] = useState(false);
 
-  // --- Generator Logic ---
   useEffect(() => {
-    if (mode === 'generate') {
-      generateQR(inputText);
-    }
-  }, [inputText, mode, fgColor, bgColor]);
+    if (mode !== 'generate') return;
+    generateQR(inputText);
+  }, [inputText, mode, fgColor, bgColor, size, margin, errorCorrection]);
 
   const generateQR = async (text: string) => {
     if (!text.trim()) {
       setQrImage('');
       return;
     }
+
     try {
       const url = await QRCode.toDataURL(text, {
-        width: 800,
-        margin: 2,
+        width: size,
+        margin,
+        errorCorrectionLevel: errorCorrection,
         color: {
           dark: fgColor,
           light: bgColor
@@ -76,22 +156,24 @@ export const QrCodeTool: React.FC<QrCodeToolProps> = ({ isSidebarOpen, toggleSid
     document.body.removeChild(link);
   };
 
-  // --- Reader Logic ---
-  
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const copyText = (text: string, id: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopyFeedback(id);
+    setTimeout(() => setCopyFeedback(null), 1500);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file) processFile(file);
-    // Reset input
-    e.target.value = '';
+    event.target.value = '';
   };
 
   const processFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const image = new Image();
-      image.onload = () => {
-        scanImage(image);
-      };
+      image.onload = () => scanImage(image);
       image.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
@@ -118,16 +200,15 @@ export const QrCodeTool: React.FC<QrCodeToolProps> = ({ isSidebarOpen, toggleSid
     }
   };
 
-  // Paste support
   useEffect(() => {
-    const handlePaste = (e: ClipboardEvent) => {
+    const handlePaste = (event: ClipboardEvent) => {
       if (mode !== 'read') return;
-      const items = e.clipboardData?.items;
+      const items = event.clipboardData?.items;
       if (!items) return;
 
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
-          const file = items[i].getAsFile();
+      for (let index = 0; index < items.length; index += 1) {
+        if (items[index].type.includes('image')) {
+          const file = items[index].getAsFile();
           if (file) processFile(file);
         }
       }
@@ -137,230 +218,188 @@ export const QrCodeTool: React.FC<QrCodeToolProps> = ({ isSidebarOpen, toggleSid
     return () => window.removeEventListener('paste', handlePaste);
   }, [mode]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(scannedText);
-    setCopyFeedback(true);
-    setTimeout(() => setCopyFeedback(false), 2000);
-  };
+  const payloadType = inputText.startsWith('http') ? 'URL' : inputText.includes('\n') ? 'Multiline' : 'Plain text';
+  const estimatedSize = qrImage ? formatBytes(estimateDataUrlBytes(qrImage)) : '0 B';
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-                title="Open Sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-          </div>
-        </div>
-
-        {/* Mode Switcher */}
-        <div className="flex items-center space-x-3 electron-no-drag">
-           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
-             <button
-               onClick={() => setMode('generate')}
-               className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${
-                 mode === 'generate'
-                   ? 'bg-element-bg text-text-primary shadow-sm' 
-                   : 'text-text-secondary hover:text-text-primary'
-               }`}
-             >
-               Generate
-             </button>
-             <button
-               onClick={() => setMode('read')}
-               className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${
-                 mode === 'read'
-                   ? 'bg-element-bg text-text-primary shadow-sm' 
-                   : 'text-text-secondary hover:text-text-primary'
-               }`}
-             >
-               Read
-             </button>
-           </div>
-           
-           <div className="w-px h-4 bg-border-base mx-1" />
-
-           <button 
-              onClick={() => setMode(mode === 'generate' ? 'read' : 'generate')}
-              className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded transition-colors"
-              title="Switch Mode"
-           >
-              <ArrowRightLeft size={16} />
-           </button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 flex flex-col p-6 overflow-hidden">
-        
+    <ToolShell>
+      <ToolHeader icon={<QrCodeIcon />} title={toolLabel} subtitle="generate · read · processed locally">
+        <SegmentedControl<Mode>
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'generate', label: 'Generate', icon: <QrCodeIcon /> },
+            { value: 'read', label: 'Read', icon: <ScanLine /> }
+          ]}
+        />
         {mode === 'generate' ? (
-          // --- Generator View (Vertical Layout) ---
-          <div className="max-w-3xl mx-auto w-full flex flex-col gap-6 h-full">
-             
-             {/* Input Section */}
-             <div className="flex-1 flex flex-col min-h-0 bg-panel-bg border border-border-base rounded-lg shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between p-3 border-b border-border-base bg-sidebar-bg/30">
-                   <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Content</span>
-                   <span className="text-[10px] text-text-secondary">Updates automatically</span>
-                </div>
-                <div className="flex-1 relative">
-                   <textarea
-                     value={inputText}
-                     onChange={(e) => setInputText(e.target.value)}
-                     placeholder="Enter text or URL to generate QR code..."
-                     className="w-full h-full bg-app-bg resize-none outline-none text-text-primary placeholder-text-secondary font-mono text-sm p-4 leading-relaxed"
-                     spellCheck={false}
-                   />
-                </div>
-             </div>
-
-             {/* Output & Controls Section */}
-             <div className="shrink-0 flex flex-col md:flex-row gap-6">
-                
-                {/* QR Preview */}
-                <div className="flex-1 bg-panel-bg border border-border-base rounded-lg p-6 flex items-center justify-center min-h-[240px] shadow-sm">
-                   {qrImage ? (
-                     <div className="bg-white p-3 rounded-lg shadow-sm">
-                        <img src={qrImage} alt="QR Code" className="w-48 h-48 object-contain" />
-                     </div>
-                   ) : (
-                     <div className="w-48 h-48 flex flex-col items-center justify-center text-text-secondary opacity-30">
-                       <ScanLine size={48} strokeWidth={1} />
-                       <span className="text-sm mt-2 font-medium">Preview</span>
-                     </div>
-                   )}
-                </div>
-
-                {/* Settings Panel */}
-                <div className="w-full md:w-72 bg-panel-bg border border-border-base rounded-lg p-5 flex flex-col gap-5 shadow-sm">
-                   <div className="space-y-4">
-                      <div className="flex flex-col gap-1.5">
-                         <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Foreground</label>
-                         <div className="flex items-center gap-3 bg-app-bg border border-border-base rounded-md p-2 px-3 hover:border-accent/50 transition-colors group cursor-pointer relative">
-                            <div className="w-6 h-6 rounded border border-border-base shadow-sm" style={{ backgroundColor: fgColor }}></div>
-                            <span className="text-xs font-mono text-text-primary">{fgColor}</span>
-                            <input 
-                              type="color" 
-                              value={fgColor}
-                              onChange={(e) => setFgColor(e.target.value)}
-                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                            />
-                         </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                         <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Background</label>
-                         <div className="flex items-center gap-3 bg-app-bg border border-border-base rounded-md p-2 px-3 hover:border-accent/50 transition-colors group cursor-pointer relative">
-                            <div className="w-6 h-6 rounded border border-border-base shadow-sm" style={{ backgroundColor: bgColor }}></div>
-                            <span className="text-xs font-mono text-text-primary">{bgColor}</span>
-                            <input 
-                              type="color" 
-                              value={bgColor}
-                              onChange={(e) => setBgColor(e.target.value)}
-                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                            />
-                         </div>
-                      </div>
-                   </div>
-
-                   <div className="h-px bg-border-base/50" />
-                   
-                   <button
-                     onClick={downloadQR}
-                     disabled={!qrImage}
-                     className="mt-auto flex items-center justify-center space-x-2 px-4 py-2.5 bg-accent text-white rounded-md font-medium hover:bg-accent/90 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                   >
-                      <Download size={16} />
-                      <span>Download PNG</span>
-                   </button>
-                </div>
-
-             </div>
-          </div>
+          <>
+            <StatusBadge tone={qrImage ? 'ok' : 'neutral'}>{qrImage ? 'READY' : 'EMPTY'}</StatusBadge>
+            <ToolButton icon={<Download />} onClick={downloadQR} disabled={!qrImage}>
+              PNG
+            </ToolButton>
+          </>
         ) : (
-          // --- Reader View ---
-          <div className="max-w-2xl mx-auto w-full flex flex-col gap-8 h-full items-center justify-center">
-             
-             {/* Upload Area */}
-             <div 
-               className="w-full bg-panel-bg border-2 border-dashed border-border-base rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer hover:border-accent hover:bg-hover-overlay transition-all group"
-               onClick={() => fileInputRef.current?.click()}
-               onDragOver={(e) => e.preventDefault()}
-               onDrop={(e) => {
-                 e.preventDefault();
-                 const file = e.dataTransfer.files?.[0];
-                 if (file) processFile(file);
-               }}
-             >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                />
-                <div className="mb-4 p-4 rounded-full bg-element-bg group-hover:bg-accent/10 transition-colors">
-                   <ImageIcon size={32} className="text-text-secondary group-hover:text-accent transition-colors" />
-                </div>
-                <h3 className="text-lg font-medium text-text-primary mb-2">Click or Drop Image Here</h3>
-                <p className="text-sm text-text-secondary text-center">
-                  Supports .png, .jpg, .jpeg<br/>
-                  Or paste image from clipboard (Ctrl+V)
-                </p>
-             </div>
-
-             {/* Result Area */}
-             <div className="w-full space-y-2">
-                <div className="flex items-center justify-between">
-                   <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Decoded Result</span>
-                   {scannedText && (
-                     <span className="text-xs text-green-500 font-medium flex items-center gap-1">
-                       <CheckCircle2 size={12} /> Success
-                     </span>
-                   )}
-                </div>
-                
-                <div className={`w-full p-4 rounded-lg border ${
-                   readerError ? 'bg-red-500/5 border-red-500/20' : 'bg-panel-bg border-border-base'
-                } min-h-[5rem] relative`}>
-                   
-                   {readerError ? (
-                     <div className="text-red-400 text-sm flex items-center gap-2">
-                       <ScanLine size={16} />
-                       {readerError}
-                     </div>
-                   ) : (
-                     <div className="text-text-primary font-mono text-sm break-all pr-10">
-                       {scannedText || <span className="text-text-secondary opacity-50 italic">Upload an image to see content...</span>}
-                     </div>
-                   )}
-
-                   {scannedText && (
-                      <button 
-                        onClick={handleCopy}
-                        className="absolute top-4 right-4 p-2 text-text-secondary hover:text-text-primary bg-element-bg hover:bg-border-base rounded-md transition-colors"
-                        title="Copy text"
-                      >
-                         {copyFeedback ? <CheckCircle2 size={16} className="text-green-500" /> : <Copy size={16} />}
-                      </button>
-                   )}
-                </div>
-             </div>
-
-          </div>
+          <ToolButton icon={<Upload />} onClick={() => fileInputRef.current?.click()}>
+            Choose Image
+          </ToolButton>
         )}
-      </div>
-    </div>
+      </ToolHeader>
+
+      {mode === 'generate' ? (
+        <ToolBody className="grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px_320px]">
+          <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+            <PaneHeader
+              title="Content"
+              meta={`${inputText.length} chars`}
+              actions={
+                <>
+                  <IconButton icon={<Trash2 />} onClick={() => setInputText('')} title="Clear" />
+                  <IconButton icon={<ClipboardPaste />} onClick={() => navigator.clipboard.readText().then(setInputText)} title="Paste" />
+                </>
+              }
+            />
+            <div className="min-h-0 flex-1 overflow-auto p-[18px]">
+              <Field label="Encoded value" hint={`${payloadType} payload`}>
+                <textarea
+                  value={inputText}
+                  onChange={(event) => setInputText(event.target.value)}
+                  placeholder="Enter text, URL, WiFi data, vCard, or anything else..."
+                  className="min-h-[132px] w-full resize-y rounded-[var(--radius-sm)] border border-border-base bg-input-bg p-3 font-mono text-[12.5px] leading-5 text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-border-hover focus:shadow-[0_0_0_2px_var(--selection)]"
+                  spellCheck={false}
+                />
+              </Field>
+
+              <GroupTitle>Templates</GroupTitle>
+              <PresetPills items={QR_TEMPLATES} onSelect={(item) => item.value && setInputText(item.value)} />
+
+              <GroupTitle>Live preview · raw payload</GroupTitle>
+              <div className="rounded-[var(--radius-sm)] border border-border-base bg-input-bg p-3 font-mono text-[11.5px] leading-5 text-text-secondary break-all">
+                {inputText || <span className="text-[var(--fg-3)]">QR payload will appear here.</span>}
+              </div>
+            </div>
+          </ToolPane>
+
+          <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+            <PaneHeader title="Preview" meta={`${size} x ${size}`} actions={<IconButton icon={<RefreshCw />} onClick={() => generateQR(inputText)} title="Refresh" />} />
+            <CheckerboardSurface>
+              {qrImage ? (
+                <div className="rounded-[var(--radius-lg)] border border-border-base bg-white p-4 shadow-[var(--shadow-md)]">
+                  <img src={qrImage} alt="Generated QR code" className="h-[260px] w-[260px] object-contain" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-text-secondary opacity-50">
+                  <ScanLine size={46} strokeWidth={1.2} />
+                  <span className="text-sm font-medium">Preview</span>
+                </div>
+              )}
+            </CheckerboardSurface>
+            <StatusBar>
+              <span>format <b className="font-medium text-text-primary">PNG</b></span>
+              <span>error correction <b className="font-medium text-text-primary">{errorCorrection}</b></span>
+              <span>estimated <b className="font-medium text-text-primary">{estimatedSize}</b></span>
+            </StatusBar>
+          </ToolPane>
+
+          <ToolPane className="bg-sidebar-bg">
+            <PaneHeader title="Style" />
+            <div className="min-h-0 flex-1 overflow-auto p-[18px]">
+              <div className="space-y-4">
+                <ColorPicker label="Foreground" value={fgColor} swatches={FG_SWATCHES} onChange={setFgColor} />
+                <ColorPicker label="Background" value={bgColor} swatches={BG_SWATCHES} onChange={setBgColor} />
+              </div>
+
+              <GroupTitle>Encoding</GroupTitle>
+              <Field label="Error correction" hint="recovery">
+                <SegmentedControl<ErrorCorrection>
+                  value={errorCorrection}
+                  onChange={setErrorCorrection}
+                  className="w-full [&_button]:flex-1 [&_button]:justify-center"
+                  options={[
+                    { value: 'L', label: 'L' },
+                    { value: 'M', label: 'M' },
+                    { value: 'Q', label: 'Q' },
+                    { value: 'H', label: 'H' }
+                  ]}
+                />
+                <span className="text-[10.5px] text-[var(--fg-3)]">L 7% · M 15% · Q 25% · H 30%</span>
+              </Field>
+              <Field label="Output size" hint={`${size}px`} className="mt-4">
+                <input
+                  type="range"
+                  min="128"
+                  max="1024"
+                  step="32"
+                  value={size}
+                  onChange={(event) => setSize(Number(event.target.value))}
+                  className="w-full accent-[var(--accent)]"
+                />
+              </Field>
+              <Field label="Quiet zone" hint={`${margin} modules`} className="mt-4">
+                <input
+                  type="range"
+                  min="0"
+                  max="6"
+                  step="1"
+                  value={margin}
+                  onChange={(event) => setMargin(Number(event.target.value))}
+                  className="w-full accent-[var(--accent)]"
+                />
+              </Field>
+            </div>
+          </ToolPane>
+        </ToolBody>
+      ) : (
+        <ToolBody className="grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+            <PaneHeader title="Source image" actions={<ToolButton icon={<Upload />} onClick={() => fileInputRef.current?.click()}>Choose</ToolButton>} />
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                const file = event.dataTransfer.files?.[0];
+                if (file) processFile(file);
+              }}
+              className="m-[18px] flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-border-hover bg-sidebar-bg p-6 text-center text-text-secondary transition-colors hover:border-accent hover:text-text-primary"
+            >
+              <ImageIcon size={34} strokeWidth={1.4} />
+              <div>
+                <div className="text-sm font-semibold text-text-primary">Drop or choose a QR image</div>
+                <div className="mt-1 text-xs text-text-secondary">PNG, JPG, JPEG, or paste image from clipboard.</div>
+              </div>
+            </button>
+          </ToolPane>
+
+          <ToolPane className="bg-sidebar-bg">
+            <PaneHeader
+              title="Decoded result"
+              actions={
+                scannedText && (
+                  <IconButton
+                    icon={copyFeedback === 'scan' ? <CheckCircle2 /> : <Copy />}
+                    onClick={() => copyText(scannedText, 'scan')}
+                    title="Copy decoded text"
+                  />
+                )
+              }
+            />
+            <div className="min-h-0 flex-1 overflow-auto p-[18px]">
+              <div
+                className={`min-h-[160px] rounded-[var(--radius-sm)] border p-4 font-mono text-sm leading-6 break-all ${
+                  readerError
+                    ? 'border-[color-mix(in_oklab,var(--red)_35%,var(--line))] bg-[color-mix(in_oklab,var(--red)_8%,transparent)] text-[var(--red)]'
+                    : 'border-border-base bg-input-bg text-text-primary'
+                }`}
+              >
+                {readerError || scannedText || <span className="text-text-secondary">Decoded QR content will appear here.</span>}
+              </div>
+            </div>
+          </ToolPane>
+        </ToolBody>
+      )}
+    </ToolShell>
   );
 };

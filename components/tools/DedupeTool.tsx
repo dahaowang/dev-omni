@@ -3,10 +3,18 @@ import {
   Trash2, 
   CheckCircle2, 
   Copy, 
-  PanelLeft,
   Filter
 } from 'lucide-react';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
+import {
+  PaneHeader,
+  StatusBadge,
+  StatusBar,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface DedupeToolProps {
   isSidebarOpen: boolean;
@@ -54,42 +62,32 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Tool Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0">
-        
-        {!isSidebarOpen && (
-          <>
-            <div className="w-[70px] h-full shrink-0 electron-drag" />
-            <button 
-              onClick={toggleSidebar} 
-              className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-              title="Open Sidebar"
-            >
-              <PanelLeft size={18} />
-            </button>
-          </>
-        )}
+    <ToolShell>
+      <ToolHeader icon={<Filter />} title={toolLabel} subtitle="preserve first occurrence · one item per line">
+        <StatusBadge>{stats.total} total</StatusBadge>
+        <StatusBadge tone={stats.removed > 0 ? 'ok' : 'neutral'}>{stats.removed} removed</StatusBadge>
+        <ToolButton
+          onClick={handleCopy}
+          disabled={!output}
+          icon={copyFeedback ? <CheckCircle2 /> : <Copy />}
+          variant="primary"
+        >
+          {copyFeedback ? 'Copied' : 'Copy'}
+        </ToolButton>
+      </ToolHeader>
 
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
-        </div>
-        
-        <div className="flex-1 electron-drag"></div>
-      </div>
-
-      {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        
-        {/* Input Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
-          <div className="flex items-center justify-between mb-2 px-1">
-             <div className="text-sm font-medium text-text-secondary">Input List</div>
-             <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-               <Trash2 size={12} /> Clear
-             </button>
-          </div>
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden hover:border-border-hover transition-colors">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-2">
+        <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+          <PaneHeader
+            title="Input list"
+            meta={`${input ? input.split('\n').length : 0} lines`}
+            actions={
+              <ToolButton onClick={handleClear} icon={<Trash2 />} variant="ghost" className="h-[22px] px-1.5">
+                Clear
+              </ToolButton>
+            }
+          />
+          <div className="relative min-h-0 flex-1 overflow-hidden">
             <LineNumberTextarea
               spellCheck={false}
               value={input}
@@ -98,23 +96,11 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
               className="text-text-primary placeholder-text-secondary"
             />
           </div>
-        </div>
+        </ToolPane>
 
-        {/* Output Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
-          <div className="flex items-center justify-between mb-2 px-1">
-             <div className="text-sm font-medium text-text-secondary">Unique Lines</div>
-             {output && (
-              <button 
-                onClick={handleCopy}
-                className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
-              >
-                {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
-                <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
-              </button>
-            )}
-          </div>
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
+        <ToolPane>
+          <PaneHeader title="Unique lines" meta={`${stats.unique} lines`} />
+          <div className="relative min-h-0 flex-1 overflow-hidden">
             <LineNumberTextarea
               readOnly
               spellCheck={false}
@@ -123,19 +109,16 @@ export const DedupeTool: React.FC<DedupeToolProps> = ({ isSidebarOpen, toggleSid
               className="text-text-primary placeholder-text-secondary"
             />
           </div>
-        </div>
+        </ToolPane>
       </div>
 
-      {/* Status Bar */}
-      <div className="h-8 bg-sidebar-bg border-t border-border-base flex items-center px-4 justify-between text-xs text-text-secondary shrink-0">
-        <div className="flex items-center space-x-4">
-          <span>Total: <span className="text-text-primary">{stats.total}</span></span>
-          <span className="w-px h-3 bg-border-base"></span>
-          <span>Unique: <span className="text-text-primary">{stats.unique}</span></span>
-          <span className="w-px h-3 bg-border-base"></span>
-          <span>Removed: <span className="text-text-primary">{stats.removed}</span></span>
-        </div>
-      </div>
-    </div>
+      <StatusBar>
+        <span>Total <b className="font-medium text-text-primary">{stats.total}</b></span>
+        <span className="h-3 w-px bg-border-base" />
+        <span>Unique <b className="font-medium text-text-primary">{stats.unique}</b></span>
+        <span className="h-3 w-px bg-border-base" />
+        <span>Removed <b className="font-medium text-text-primary">{stats.removed}</b></span>
+      </StatusBar>
+    </ToolShell>
   );
 };

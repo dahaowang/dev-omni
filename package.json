@@ -4,34 +4,39 @@
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
-    "dev": "vite",
+    "prepare:ocr": "node scripts/copy-ocr-assets.js",
+    "dev": "npm run prepare:ocr && vite",
     "clean:release": "node -e \"require('fs').rmSync('release', { recursive: true, force: true })\"",
-    "build": "npm run clean:release && tsc && vite build && electron-builder",
+    "build": "npm run prepare:ocr && npm run clean:release && tsc && vite build && electron-builder",
     "preview": "vite preview",
     "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on tcp:5173 && electron .\""
   },
   "dependencies": {},
   "devDependencies": {
+    "@tesseract.js-data/chi_sim": "^1.0.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.18",
+    "concurrently": "^8.2.2",
     "cron-parser": "^4.9.0",
+    "cross-env": "^7.0.3",
+    "electron": "^40.2.1",
+    "electron-builder": "^26.7.0",
+    "esbuild": "^0.27.3",
     "js-yaml": "^4.1.0",
     "jsonrepair": "^3.13.2",
     "jsqr": "^1.4.0",
     "lucide-react": "^0.344.0",
+    "postcss": "^8.4.35",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@types/react": "^18.2.64",
-    "@types/react-dom": "^18.2.21",
-    "@types/qrcode": "^1.5.5",
-    "@vitejs/plugin-react": "^4.2.1",
-    "@types/js-yaml": "^4.0.9",
-    "autoprefixer": "^10.4.18",
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
-    "electron": "^40.2.1",
-    "electron-builder": "^26.7.0",
-    "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
+    "tesseract.js": "^7.0.0",
     "typescript": "^5.4.2",
     "vite": "^7.3.1",
     "wait-on": "^7.2.0"
@@ -47,7 +52,9 @@
       "output": "release"
     },
     "mac": {
-      "target": ["zip"]
+      "target": [
+        "zip"
+      ]
     }
   }
 }

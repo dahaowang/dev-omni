@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  PanelLeft, 
   Trash2, 
   CheckCircle2, 
-  Copy
+  Copy,
+  Database
 } from 'lucide-react';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
 import { useTheme } from '../../context/ThemeContext';
+import {
+  PaneHeader,
+  SegmentedControl,
+  StatusBadge,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface SqlFormatterToolProps {
   isSidebarOpen: boolean;
@@ -193,59 +202,36 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
   const lineCount = output ? output.split('\n').length : 0;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-                title="Open Sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-4">{toolLabel}</h2>
-          </div>
-        </div>
+    <ToolShell>
+      <ToolHeader icon={<Database />} title={toolLabel} subtitle="format · keywords · indentation">
+        <StatusBadge>{input ? `${input.length} chars` : 'Waiting'}</StatusBadge>
+        <SegmentedControl
+          value={dialect}
+          onChange={(value: Dialect) => setDialect(value)}
+          options={(['Standard', 'PostgreSQL', 'MySQL'] as Dialect[]).map((value) => ({ value, label: value }))}
+        />
+        <ToolButton
+          onClick={handleCopy}
+          disabled={!output}
+          icon={copyFeedback ? <CheckCircle2 /> : <Copy />}
+          variant="primary"
+        >
+          {copyFeedback ? 'Copied' : 'Copy'}
+        </ToolButton>
+      </ToolHeader>
 
-        {/* Toolbar */}
-        <div className="flex items-center space-x-3 electron-no-drag">
-           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
-             {(['Standard', 'PostgreSQL', 'MySQL'] as Dialect[]).map((d) => (
-               <button
-                 key={d}
-                 onClick={() => setDialect(d)}
-                 className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${
-                   dialect === d 
-                     ? 'bg-element-bg text-text-primary shadow-sm' 
-                     : 'text-text-secondary hover:text-text-primary'
-                 }`}
-               >
-                 {d}
-               </button>
-             ))}
-           </div>
-        </div>
-      </div>
-
-      {/* Workspace */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        
-        {/* Input Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
-          <div className="flex items-center justify-between mb-2 px-1">
-             <div className="text-sm font-medium text-text-secondary">Raw SQL</div>
-             <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-               <Trash2 size={12} /> Clear
-             </button>
-          </div>
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-2">
+        <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+          <PaneHeader
+            title="Raw SQL"
+            meta={`${input ? input.split('\n').length : 0} lines`}
+            actions={
+              <ToolButton onClick={handleClear} icon={<Trash2 />} variant="ghost" className="h-[22px] px-1.5">
+                Clear
+              </ToolButton>
+            }
+          />
+          <div className="relative min-h-0 flex-1 overflow-hidden">
             <LineNumberTextarea
               spellCheck={false}
               value={input}
@@ -254,48 +240,31 @@ export const SqlFormatterTool: React.FC<SqlFormatterToolProps> = ({ isSidebarOpe
               className="text-text-primary placeholder-text-secondary"
             />
           </div>
-        </div>
+        </ToolPane>
 
-        {/* Output Pane */}
-        <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
-          <div className="flex items-center justify-between mb-2 px-1">
-             <div className="text-sm font-medium text-text-secondary">Formatted SQL</div>
-             {output && (
-              <button 
-                onClick={handleCopy}
-                className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
-              >
-                {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
-                <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
-              </button>
+        <ToolPane>
+          <PaneHeader title="Formatted SQL" meta={`${lineCount} lines`} />
+          <div className="relative flex min-h-0 flex-1 overflow-hidden">
+            {editorSettings.lineNumbers && output && (
+              <div className="min-w-[3rem] shrink-0 select-none overflow-hidden border-r border-border-base bg-sidebar-bg/30 py-4 pl-2 pr-3 text-right font-mono text-sm leading-6 text-text-secondary/30">
+                {Array.from({ length: Math.max(1, lineCount) }).map((_, i) => (
+                  <div key={i}>{i + 1}</div>
+                ))}
+              </div>
             )}
-          </div>
-          <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors flex flex-col">
-            
-            <div className="flex-1 flex overflow-hidden relative">
-                {/* Line Numbers for Output */}
-                {editorSettings.lineNumbers && output && (
-                  <div className="bg-sidebar-bg/30 text-text-secondary/30 text-right pr-3 pl-2 pt-4 select-none overflow-hidden border-r border-border-base shrink-0 min-w-[3rem] font-mono text-sm leading-6">
-                     {Array.from({length: Math.max(1, lineCount)}).map((_, i) => (
-                        <div key={i}>{i + 1}</div>
-                     ))}
-                  </div>
-                )}
 
-                {/* Syntax Highlighted Output Container */}
-                <div className="flex-1 overflow-auto p-4 w-full h-full bg-transparent">
-                  {output ? (
-                    <div className="whitespace-pre">
-                      <SqlHighlight code={output} />
-                    </div>
-                  ) : (
-                    <span className="font-mono text-sm text-text-secondary opacity-50 select-none">Result will appear here...</span>
-                  )}
+            <div className="h-full w-full flex-1 overflow-auto bg-transparent p-4">
+              {output ? (
+                <div className="whitespace-pre">
+                  <SqlHighlight code={output} />
                 </div>
+              ) : (
+                <span className="select-none font-mono text-sm text-text-secondary opacity-50">Result will appear here...</span>
+              )}
             </div>
           </div>
-        </div>
+        </ToolPane>
       </div>
-    </div>
+    </ToolShell>
   );
 };

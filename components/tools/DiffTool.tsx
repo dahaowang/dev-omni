@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
-  PanelLeft, 
   Split, 
   Edit3, 
   ArrowRightLeft,
@@ -19,6 +18,16 @@ import {
   List
 } from 'lucide-react';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
+import {
+  PaneHeader,
+  SegmentedControl,
+  StatusBadge,
+  StatusBar,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface DiffToolProps {
   isSidebarOpen: boolean;
@@ -378,196 +387,128 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
-          </div>
-        </div>
-
-        {/* Toolbar */}
-        <div className="flex items-center space-x-2 electron-no-drag">
-           {mode === 'edit' ? (
-             <>
-               <button onClick={handleSwap} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-hover-overlay rounded transition-colors" title="Swap Inputs">
-                 <ArrowRightLeft size={16} />
-               </button>
-               <button onClick={handleClear} className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-hover-overlay rounded transition-colors" title="Clear All">
-                 <Trash2 size={16} />
-               </button>
-               <div className="w-px h-4 bg-border-base mx-2" />
-               <button 
-                onClick={() => setMode('view')} 
-                className="flex items-center space-x-2 px-3 py-1.5 bg-accent text-white rounded-md text-xs font-medium hover:opacity-90 shadow-sm"
-               >
-                 <Split size={14} />
-                 <span>Compare</span>
-               </button>
-             </>
-           ) : (
-             <>
-                {/* Sort Options */}
-               <div className="flex items-center space-x-1 mr-2 bg-panel-bg rounded-md p-1 border border-border-base">
-                 <button
-                   onClick={() => setSortMode('none')}
-                   className={`p-1.5 rounded transition-colors ${sortMode === 'none' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
-                   title="No Sorting (Original Order)"
-                 >
-                   <List size={14} />
-                 </button>
-                 <button
-                   onClick={() => setSortMode('asc')}
-                   className={`p-1.5 rounded transition-colors ${sortMode === 'asc' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
-                   title="Sort Lines Ascending (A-Z)"
-                 >
-                   <ArrowDownAZ size={14} />
-                 </button>
-                 <button
-                   onClick={() => setSortMode('desc')}
-                   className={`p-1.5 rounded transition-colors ${sortMode === 'desc' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
-                   title="Sort Lines Descending (Z-A)"
-                 >
-                   <ArrowUpAZ size={14} />
-                 </button>
-               </div>
-
-               <div className="flex items-center space-x-1 mr-2 bg-panel-bg rounded-md p-1 border border-border-base">
-                 <button
-                   onClick={() => setIgnoreWhitespace(!ignoreWhitespace)}
-                   className={`p-1.5 rounded transition-colors ${ignoreWhitespace ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
-                   title="Ignore Whitespace"
-                 >
-                   <Space size={14} />
-                 </button>
-                 <button
-                   onClick={() => setShowInlineDiff(!showInlineDiff)}
-                   className={`p-1.5 rounded transition-colors ${showInlineDiff ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:text-text-primary'}`}
-                   title="Inline Highlighting"
-                 >
-                   <ScanText size={14} />
-                 </button>
-               </div>
-
-               <div className="w-px h-4 bg-border-base mx-2" />
-               
-               <button 
-                onClick={() => setMode('edit')} 
-                className="flex items-center space-x-2 px-3 py-1.5 bg-element-bg border border-border-base text-text-primary rounded-md text-xs font-medium hover:bg-hover-overlay shadow-sm"
-               >
-                 <Edit3 size={14} />
-                 <span>Edit</span>
-               </button>
-             </>
-           )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 flex overflow-hidden">
-        
+    <ToolShell>
+      <ToolHeader icon={<Split />} title={toolLabel} subtitle="compare text · inline changes · line sorting">
         {mode === 'edit' ? (
-          <div className="flex-1 flex flex-row">
-            {/* Original Input */}
-            <div className="flex-1 flex flex-col p-4 border-r border-border-base min-w-0">
-               <div className="text-xs font-semibold text-text-secondary mb-2 uppercase tracking-wide">Original Text</div>
-               <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-                 <LineNumberTextarea 
-                    value={original}
-                    onChange={(e) => setOriginal(e.target.value)}
-                    placeholder="Paste original text here..."
-                    spellCheck={false}
-                 />
-               </div>
-            </div>
+          <>
+            <StatusBadge>{original.length + modified.length} chars</StatusBadge>
+            <ToolButton onClick={handleSwap} icon={<ArrowRightLeft />}>
+              Swap
+            </ToolButton>
+            <ToolButton onClick={handleClear} icon={<Trash2 />} variant="ghost">
+              Clear
+            </ToolButton>
+            <ToolButton onClick={() => setMode('view')} icon={<Split />} variant="primary">
+              Compare
+            </ToolButton>
+          </>
+        ) : (
+          <>
+            <SegmentedControl
+              value={sortMode}
+              onChange={(value: 'none' | 'asc' | 'desc') => setSortMode(value)}
+              options={[
+                { value: 'none', label: 'Original', icon: <List /> },
+                { value: 'asc', label: 'A-Z', icon: <ArrowDownAZ /> },
+                { value: 'desc', label: 'Z-A', icon: <ArrowUpAZ /> }
+              ]}
+            />
+            <ToolButton
+              onClick={() => setIgnoreWhitespace(!ignoreWhitespace)}
+              icon={<Space />}
+              variant={ignoreWhitespace ? 'primary' : 'default'}
+              title="Ignore whitespace"
+            >
+              Whitespace
+            </ToolButton>
+            <ToolButton
+              onClick={() => setShowInlineDiff(!showInlineDiff)}
+              icon={<ScanText />}
+              variant={showInlineDiff ? 'primary' : 'default'}
+              title="Inline highlighting"
+            >
+              Inline
+            </ToolButton>
+            <ToolButton onClick={() => setMode('edit')} icon={<Edit3 />}>
+              Edit
+            </ToolButton>
+          </>
+        )}
+      </ToolHeader>
 
-            {/* Modified Input */}
-            <div className="flex-1 flex flex-col p-4 min-w-0">
-               <div className="text-xs font-semibold text-text-secondary mb-2 uppercase tracking-wide">Modified Text</div>
-               <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden focus-within:border-accent transition-colors">
-                 <LineNumberTextarea 
-                    value={modified}
-                    onChange={(e) => setModified(e.target.value)}
-                    placeholder="Paste modified text here..."
-                    spellCheck={false}
-                 />
-               </div>
-            </div>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {mode === 'edit' ? (
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-2">
+            <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+              <PaneHeader title="Original text" meta={`${original ? original.split('\n').length : 0} lines`} />
+              <div className="relative min-h-0 flex-1 overflow-hidden">
+                <LineNumberTextarea
+                  value={original}
+                  onChange={(e) => setOriginal(e.target.value)}
+                  placeholder="Paste original text here..."
+                  spellCheck={false}
+                />
+              </div>
+            </ToolPane>
+
+            <ToolPane>
+              <PaneHeader title="Modified text" meta={`${modified ? modified.split('\n').length : 0} lines`} />
+              <div className="relative min-h-0 flex-1 overflow-hidden">
+                <LineNumberTextarea
+                  value={modified}
+                  onChange={(e) => setModified(e.target.value)}
+                  placeholder="Paste modified text here..."
+                  spellCheck={false}
+                />
+              </div>
+            </ToolPane>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col min-w-0 bg-app-bg">
-            
-            {/* Stats Header */}
-            <div className="bg-app-bg border-b border-border-base py-3 px-6 flex items-center justify-between shrink-0">
-               <div className="flex items-center space-x-6">
-                 {isComputing ? (
-                   <div className="flex items-center space-x-2 text-text-secondary">
-                     <Loader2 size={16} className="animate-spin" />
-                     <span className="text-sm font-medium">Computing diff...</span>
-                   </div>
-                 ) : (
-                   <>
-                     <div className="flex items-center space-x-2 text-red-400">
-                        <MinusCircle size={16} />
-                        <span className="font-semibold text-sm">{stats.removed} removals</span>
-                     </div>
-                     <div className="flex items-center space-x-2 text-green-500">
-                        <PlusCircle size={16} />
-                        <span className="font-semibold text-sm">{stats.added} additions</span>
-                     </div>
-                   </>
-                 )}
-               </div>
+          <div className="flex min-w-0 flex-1 flex-col bg-app-bg">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border-base bg-sidebar-bg px-4 py-2">
+              <div className="flex items-center gap-3">
+                {isComputing ? (
+                  <StatusBadge icon={<Loader2 size={11} className="animate-spin" />}>Computing</StatusBadge>
+                ) : (
+                  <>
+                    <StatusBadge tone="bad" icon={<MinusCircle size={11} />}>{stats.removed} removed</StatusBadge>
+                    <StatusBadge tone="ok" icon={<PlusCircle size={11} />}>{stats.added} added</StatusBadge>
+                    <StatusBadge>{rows.length} rows</StatusBadge>
+                  </>
+                )}
+              </div>
 
-               <div className="flex items-center space-x-4">
-                  {/* Navigation Controls */}
-                  {diffChunks.length > 0 && (
-                    <div className="flex items-center space-x-1 mr-2 bg-panel-bg rounded-md p-0.5 border border-border-base">
-                       <button 
-                        onClick={handlePrevDiff}
-                        className="p-1 hover:bg-hover-overlay rounded-sm text-text-secondary hover:text-text-primary transition-colors"
-                        title="Previous Difference"
-                       >
-                         <ChevronUp size={14} />
-                       </button>
-                       <span className="text-xs font-mono px-2 min-w-[3.5rem] text-center select-none text-text-secondary">
-                         {currentChunkIndex !== -1 ? currentChunkIndex + 1 : '-'} / {diffChunks.length}
-                       </span>
-                       <button 
-                        onClick={handleNextDiff}
-                        className="p-1 hover:bg-hover-overlay rounded-sm text-text-secondary hover:text-text-primary transition-colors"
-                        title="Next Difference"
-                       >
-                         <ChevronDown size={14} />
-                       </button>
-                    </div>
-                  )}
-
-                  <span className="text-xs text-text-secondary hidden sm:inline">{rows.length} rows</span>
-                  <button 
-                    onClick={handleCopyResult}
-                    className="flex items-center space-x-1 text-xs font-medium text-text-primary hover:text-accent transition-colors"
-                  >
-                    {copyFeedback ? <CheckCircle2 size={14} className="text-green-500" /> : <Copy size={14} />}
-                    <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
-                  </button>
-               </div>
+              <div className="flex items-center gap-2">
+                {diffChunks.length > 0 && (
+                  <div className="flex h-7 items-center rounded-[var(--radius-sm)] border border-border-base bg-panel-bg p-0.5">
+                    <button
+                      type="button"
+                      onClick={handlePrevDiff}
+                      className="inline-flex h-[22px] w-6 items-center justify-center rounded text-text-secondary hover:bg-hover-overlay hover:text-text-primary"
+                      title="Previous difference"
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <span className="min-w-[3.5rem] px-2 text-center font-mono text-xs text-text-secondary">
+                      {currentChunkIndex !== -1 ? currentChunkIndex + 1 : '-'} / {diffChunks.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleNextDiff}
+                      className="inline-flex h-[22px] w-6 items-center justify-center rounded text-text-secondary hover:bg-hover-overlay hover:text-text-primary"
+                      title="Next difference"
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
+                )}
+                <ToolButton onClick={handleCopyResult} icon={copyFeedback ? <CheckCircle2 /> : <Copy />} disabled={!modified}>
+                  {copyFeedback ? 'Copied' : 'Copy'}
+                </ToolButton>
+              </div>
             </div>
 
-            {/* Diff View */}
-            <div ref={containerRef} className={`flex-1 overflow-auto bg-app-bg ${isComputing ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div ref={containerRef} className={`min-h-0 flex-1 overflow-auto bg-app-bg ${isComputing ? 'pointer-events-none opacity-50' : ''}`}>
               {rows.length === 0 ? (
                 <div className="p-8 text-center text-text-secondary">No differences found or empty inputs.</div>
               ) : (
@@ -639,6 +580,15 @@ export const DiffTool: React.FC<DiffToolProps> = ({ isSidebarOpen, toggleSidebar
           </div>
         )}
       </div>
-    </div>
+      {mode === 'view' && (
+        <StatusBar>
+          <span>Changes <b className="font-medium text-text-primary">{diffChunks.length}</b></span>
+          <span className="h-3 w-px bg-border-base" />
+          <span>Removed <b className="font-medium text-text-primary">{stats.removed}</b></span>
+          <span className="h-3 w-px bg-border-base" />
+          <span>Added <b className="font-medium text-text-primary">{stats.added}</b></span>
+        </StatusBar>
+      )}
+    </ToolShell>
   );
 };

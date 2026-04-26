@@ -1,189 +1,149 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Inter:wght@100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Fonts - Defaulting to Monospace as requested */
-    --font-interface: 'JetBrains Mono', 'Inter', system-ui, sans-serif;
-    --font-code: 'JetBrains Mono', 'Fira Code', monospace;
-
-    /* Optimized Dark Theme */
-    --color-app-bg: #0c0c0c;       /* Main content background - Deep Matte Black */
-    --color-sidebar-bg: #050505;   /* Sidebar - Almost Pure Black */
-    --color-panel-bg: #171717;     /* Cards - Dark Neutral Grey */
-    --color-element-bg: #262626;   /* Secondary Elements/Buttons */
-    --color-input-bg: #0a0a0a;     /* Inset Inputs - Deep Black */
-    
-    --color-border: #262626;       /* Subtle Borders */
-    --color-border-hover: #404040; /* Lighter on hover */
-    
-    --color-text-primary: #ededed;   /* High brightness text */
-    --color-text-secondary: #888888; /* Muted text */
-    
-    --color-accent: #2dd4bf;         /* Teal 400 - Vibrant Accent */
-    --color-active-item: #1a1a1a;    /* Sidebar Active Background */
-    --color-hover-overlay: rgba(255, 255, 255, 0.05);
-    
-    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  }
-
-  [data-theme='graphite'] {
-    /* Modern Grey Theme */
-    --color-app-bg: #292929;       /* Deep Grey Background */
-    --color-sidebar-bg: #222222;   /* Slightly darker sidebar for hierarchy */
-    --color-panel-bg: #393939;     /* Lighter Grey Cards (Floating effect) */
-    --color-element-bg: #4a4a4a;   /* Elements on top of cards */
-    --color-input-bg: #222222;     /* Dark inset for inputs */
-    
-    --color-border: #444444;       /* Softer grey borders */
-    --color-border-hover: #555555;
-    
-    --color-text-primary: #ffffff;   /* Pure White */
-    --color-text-secondary: #a3a3a3; /* Light Grey */
-    
-    --color-accent: #2dd4bf;         /* Keep Brand Teal */
-    --color-active-item: #393939;    /* Active state matches panel */
-    --color-hover-overlay: rgba(255, 255, 255, 0.08);
-    
-    --shadow-card: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 4px 12px -2px rgba(0, 0, 0, 0.2);
-  }
-
-  [data-theme='cream'] {
-    /* Cream / Latte Theme - Warm White Panels */
-    --color-app-bg: #F2EFE5;       /* Warm Cream Background */
-    --color-sidebar-bg: #F2EFE5;   /* Seamless sidebar */
-    
-    /* Reverted to Warm White as requested */
-    --color-panel-bg: #FDFCF8;     
-    
-    /* Elements slightly darker than panel to pop */
-    --color-element-bg: #EAE7DE;   
-    --color-input-bg: #FDFCF8;     
-    
-    /* Low contrast borders */
-    --color-border: #E4E1D5;       
-    --color-border-hover: #D1CEC2;
-    
-    /* Soft Black Text for better aesthetics on white */
-    --color-text-primary: #333333;   
-    --color-text-secondary: #79766D; /* Warm Grey */
-    
-    --color-accent: #57A364;         /* Natural Green */
-    --color-active-item: #EAE7DE;    /* Matches element */
-    --color-hover-overlay: rgba(0, 0, 0, 0.04);
-    
-    /* Warm, diffused brown shadow */
-    --shadow-card: 0 8px 20px -6px rgba(105, 95, 80, 0.1), 0 2px 8px -2px rgba(105, 95, 80, 0.05);
-  }
-
+  :root,
   [data-theme='light'] {
-    /* Refined Light Theme */
-    --color-app-bg: #f3f4f6;
-    --color-sidebar-bg: #ffffff;
-    --color-panel-bg: #ffffff;
-    --color-element-bg: #f1f5f9;
-    --color-input-bg: #ffffff;
-    
-    --color-border: #e2e8f0;
-    --color-border-hover: #cbd5e1;
-    
-    --color-text-primary: #0f172a;
-    --color-text-secondary: #64748b;
-    
-    --color-accent: #0d9488;
-    --color-active-item: #eff6ff;
-    --color-hover-overlay: rgba(0, 0, 0, 0.03);
-    
-    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --radius-lg: 14px;
+    --row-h: 30px;
+    --side-w: 248px;
+    --font-interface: 'Inter', system-ui, sans-serif;
+    --font-code: 'JetBrains Mono', ui-monospace, monospace;
+
+    --bg: #f6f5f2;
+    --bg-2: #fbfaf7;
+    --bg-3: #ffffff;
+    --bg-4: #f1efea;
+    --bg-input: #ffffff;
+    --line: #e7e4dd;
+    --line-2: #d6d2c8;
+    --fg: #1a1a1f;
+    --fg-2: #6b6a6e;
+    --fg-3: #97969b;
+    --accent: #4f46e5;
+    --accent-fg: #ffffff;
+    --hover: rgba(0, 0, 0, 0.04);
+    --selection: color-mix(in oklab, var(--accent) 22%, transparent);
+    --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.02), 0 1px 2px rgba(20, 20, 30, 0.04);
+    --shadow-md: 0 12px 28px rgba(20, 20, 30, 0.08), 0 2px 6px rgba(20, 20, 30, 0.04);
+    --green: #2e9b6b;
+    --red: #c8364a;
+    --amber: #b8862c;
+    --blue: #2f63d3;
+    --purple: #7a4cd1;
+
+    --color-app-bg: var(--bg);
+    --color-sidebar-bg: var(--bg-2);
+    --color-panel-bg: var(--bg-3);
+    --color-element-bg: var(--bg-4);
+    --color-input-bg: var(--bg-input);
+    --color-border: var(--line);
+    --color-border-hover: var(--line-2);
+    --color-text-primary: var(--fg);
+    --color-text-secondary: var(--fg-2);
+    --color-accent: var(--accent);
+    --color-active-item: var(--bg-4);
+    --color-hover-overlay: var(--hover);
+    --shadow-card: var(--shadow-sm);
   }
 
-  [data-theme='glass'] {
-    /* Light Frosted Glass (Taupe/Stone Identity) */
-    
-    --color-app-bg: transparent; /* Handled by body gradient */
-    
-    /* High transparency white for that "clear glass" look */
-    --color-sidebar-bg: rgba(255, 255, 255, 0.25); 
-    --color-panel-bg: rgba(255, 255, 255, 0.45);
-    
-    /* Elements slightly more opaque or different tint */
-    --color-element-bg: rgba(255, 255, 255, 0.4);
-    --color-input-bg: rgba(255, 255, 255, 0.25);
-    
-    /* Crisp white borders for glass edges */
-    --color-border: rgba(255, 255, 255, 0.4);
-    --color-border-hover: rgba(255, 255, 255, 0.6);
-    
-    /* Dark text for contrast on light glass */
-    --color-text-primary: #292524;   /* Stone 800 */
-    --color-text-secondary: #57534e; /* Stone 600 */
-    
-    /* Accent: Darker stone/taupe to complement #B2AEAB */
-    --color-accent: #78716c; /* Stone 500 */
-    
-    --color-active-item: rgba(255, 255, 255, 0.5);
-    --color-hover-overlay: rgba(255, 255, 255, 0.3);
-    
-    /* Glass shadow - Soft and diffused */
-    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.07);
+  [data-theme='dark'] {
+    --bg: #0b0b0d;
+    --bg-2: #0e0e11;
+    --bg-3: #131318;
+    --bg-4: #1a1a20;
+    --bg-input: #0a0a0c;
+    --line: #1f1f26;
+    --line-2: #2a2a33;
+    --fg: #ececef;
+    --fg-2: #9b9ba6;
+    --fg-3: #6a6a76;
+    --accent: #a5b4fc;
+    --accent-fg: #0a0a0c;
+    --hover: rgba(255, 255, 255, 0.04);
+    --selection: color-mix(in oklab, var(--accent) 35%, transparent);
+    --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --green: #62d1a0;
+    --red: #f06f7a;
+    --amber: #e7b86b;
+    --blue: #7eb6ff;
+    --purple: #c8a8ff;
   }
 
-  /* Light Body Gradient for Glass Theme */
-  [data-theme='glass'] body {
-     /* Linear gradient from Soft Stone White to the requested #B2AEAB */
-     background-image: linear-gradient(135deg, #f5f5f4 0%, #B2AEAB 100%);
-     background-attachment: fixed;
-     background-repeat: no-repeat;
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-app-bg text-text-primary font-sans;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11", "calt";
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--selection);
+    color: var(--fg);
   }
 }
 
-body {
-  @apply bg-app-bg text-text-primary transition-colors duration-200 font-sans;
-}
-
-/* Apply Enhanced Backdrop Blur for Glass Theme */
-[data-theme='glass'] .bg-sidebar-bg,
-[data-theme='glass'] .bg-panel-bg,
-[data-theme='glass'] .bg-element-bg {
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  /* Add subtle white inset to simulate glass edge thickness */
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-}
-
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
+
 ::-webkit-scrollbar-track {
-  background: transparent; 
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-border); 
-  border-radius: 5px;
-  border: 3px solid transparent;
-  background-clip: content-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-text-secondary); 
+  background: transparent;
 }
 
-/* Toggle Switch */
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 3px solid transparent;
+  border-radius: 5px;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--fg-3);
+}
+
 .toggle-checkbox {
   appearance: none;
-  width: 36px;
-  height: 20px;
-  background: var(--color-element-bg);
-  border: 1px solid var(--color-border);
+  width: 32px;
+  height: 18px;
+  background: color-mix(in oklab, var(--fg) 15%, transparent);
+  border: 0;
   border-radius: 9999px;
   position: relative;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease;
 }
+
 .toggle-checkbox::after {
   content: '';
   position: absolute;
@@ -191,23 +151,24 @@ body {
   left: 2px;
   width: 14px;
   height: 14px;
-  background: var(--color-text-secondary);
+  background: #fff;
   border-radius: 50%;
-  transition: all 0.2s ease;
-}
-.toggle-checkbox:checked {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-.toggle-checkbox:checked::after {
-  transform: translateX(16px);
-  background: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
 }
 
-/* Electron Drag Region */
+.toggle-checkbox:checked {
+  background: var(--accent);
+}
+
+.toggle-checkbox:checked::after {
+  transform: translateX(14px);
+}
+
 .electron-drag {
   -webkit-app-region: drag;
 }
+
 .electron-no-drag {
   -webkit-app-region: no-drag;
 }

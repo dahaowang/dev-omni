@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { PanelLeft, AlertCircle, CheckCircle2, Copy, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Copy, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+  PaneHeader,
+  StatusBadge,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface JwtToolProps {
   isSidebarOpen: boolean;
@@ -9,9 +17,9 @@ interface JwtToolProps {
 }
 
 // Color coding constants
-const COLOR_HEADER = "text-red-400";
-const COLOR_PAYLOAD = "text-purple-400";
-const COLOR_SIGNATURE = "text-blue-400";
+const COLOR_HEADER = "text-[var(--red)]";
+const COLOR_PAYLOAD = "text-[var(--purple)]";
+const COLOR_SIGNATURE = "text-[var(--blue)]";
 
 // Helper to decode Base64Url
 function b64DecodeUnicode(str: string) {
@@ -37,6 +45,7 @@ export const JwtTool: React.FC<JwtToolProps> = ({ isSidebarOpen, toggleSidebar, 
   const [payload, setPayload] = useState<any>(null);
   const [signature, setSignature] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   useEffect(() => {
     if (initialValue) {
@@ -91,6 +100,13 @@ export const JwtTool: React.FC<JwtToolProps> = ({ isSidebarOpen, toggleSidebar, 
     setInput('');
   };
 
+  const handleCopyClaims = () => {
+    if (!payload) return;
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    setCopyFeedback(true);
+    setTimeout(() => setCopyFeedback(false), 1500);
+  };
+
   const renderJson = (data: any, colorClass: string) => {
     if (!data) return null;
     const jsonStr = JSON.stringify(data, null, 2);
@@ -106,127 +122,109 @@ export const JwtTool: React.FC<JwtToolProps> = ({ isSidebarOpen, toggleSidebar, 
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-                title="Open Sidebar"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide mr-6">{toolLabel}</h2>
+    <ToolShell>
+      <ToolHeader icon={<ShieldCheck />} title={toolLabel} subtitle="decoded locally · header · payload · signature">
+        {error ? (
+          <StatusBadge tone="bad" icon={<AlertCircle size={11} />}>Invalid</StatusBadge>
+        ) : payload ? (
+          <StatusBadge tone="ok" icon={<CheckCircle2 size={11} />}>Valid format</StatusBadge>
+        ) : (
+          <StatusBadge>Waiting</StatusBadge>
+        )}
+        {payload?.exp && <StatusBadge icon={<Clock size={11} />}>exp {formatDate(payload.exp)}</StatusBadge>}
+        <ToolButton onClick={handleCopyClaims} disabled={!payload} icon={copyFeedback ? <CheckCircle2 /> : <Copy />}>
+          {copyFeedback ? 'Copied' : 'Copy claims'}
+        </ToolButton>
+      </ToolHeader>
+
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(280px,0.85fr)_1.35fr]">
+        <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+          <PaneHeader
+            title="Encoded token"
+            meta={input ? `${input.length} chars` : 'empty'}
+            actions={
+              <ToolButton onClick={handleClear} icon={<Trash2 />} variant="ghost" className="h-[22px] px-1.5">
+                Clear
+              </ToolButton>
+            }
+          />
+          <div className={`relative min-h-0 flex-1 overflow-hidden ${error ? 'border-l-2 border-[var(--red)]' : ''}`}>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="h-full w-full resize-none bg-transparent p-4 font-mono text-sm leading-6 text-text-primary placeholder:text-text-secondary focus:outline-none"
+              placeholder="Paste JWT here (eyJ...)"
+              spellCheck={false}
+            />
           </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 flex flex-col md:flex-row p-6 overflow-hidden gap-6">
-         
-         {/* Left: Input */}
-         <div className="w-full md:w-1/3 flex flex-col min-h-0 gap-2">
-            <div className="flex items-center justify-between">
-                 <div className="text-sm font-medium text-text-secondary">Encoded Token</div>
-                 <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-                   <Trash2 size={12} /> Clear
-                 </button>
+          {error ? (
+            <div className="flex items-start gap-2 border-t border-border-base bg-panel-bg p-3">
+              <AlertCircle size={15} className="mt-0.5 shrink-0 text-[var(--red)]" />
+              <span className="font-mono text-xs text-[var(--red)]">{error}</span>
             </div>
-            
-            <div className={`flex-1 bg-panel-bg rounded-lg border overflow-hidden focus-within:border-accent transition-colors relative ${error ? 'border-red-500/30' : 'border-border-base'}`}>
-               <textarea 
-                 value={input}
-                 onChange={(e) => setInput(e.target.value)}
-                 className="w-full h-full bg-transparent resize-none p-4 font-mono text-sm leading-6 text-text-primary focus:outline-none placeholder-text-secondary break-all"
-                 placeholder="Paste JWT here (eyJ...)"
-                 spellCheck={false}
-               />
-               {/* Color coded overlay logic is complex for textarea, keeping it simple plain text input */}
+          ) : payload && (
+            <div className="flex items-center gap-2 border-t border-border-base bg-panel-bg p-3">
+              <CheckCircle2 size={15} className="text-[var(--green)]" />
+              <span className="text-xs font-medium text-[var(--green)]">Valid JWT structure</span>
             </div>
+          )}
+        </ToolPane>
 
-            {error ? (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3 flex gap-2 items-start">
-                    <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
-                    <span className="text-xs text-red-300 font-mono">{error}</span>
-                </div>
-            ) : payload && (
-                <div className="bg-green-500/10 border border-green-500/20 rounded-md p-3 flex gap-2 items-center">
-                     <CheckCircle2 size={16} className="text-green-500" />
-                     <span className="text-xs text-green-300 font-medium">Valid Format</span>
-                </div>
-            )}
-         </div>
+        <ToolPane className="bg-sidebar-bg">
+          <PaneHeader title="Decoded output" meta={payload ? `${Object.keys(payload).length} claims` : 'waiting'} />
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+            <section className="overflow-hidden rounded-[var(--radius)] border border-border-base bg-panel-bg">
+              <div className="flex items-center gap-2 border-b border-border-base bg-sidebar-bg px-3 py-2 text-[11px] font-semibold">
+                <span className="h-2 w-2 rounded-sm bg-[var(--red)]" />
+                <span className={COLOR_HEADER}>Header</span>
+                <span className="font-mono text-[var(--fg-3)]">Algorithm & token type</span>
+              </div>
+              <div className="p-3">
+                {header ? renderJson(header, COLOR_HEADER) : <span className="text-sm italic text-text-secondary opacity-60">Waiting for input...</span>}
+              </div>
+            </section>
 
-         {/* Right: Decoded Output */}
-         <div className="flex-1 flex flex-col min-h-0 bg-panel-bg border border-border-base rounded-lg shadow-sm overflow-hidden">
-             
-             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                
-                {/* Header Section */}
-                <div>
-                   <div className="flex items-center gap-2 mb-2 border-b border-border-base/50 pb-1">
-                      <span className={`text-xs font-bold uppercase tracking-wider ${COLOR_HEADER}`}>Header</span>
-                      <span className="text-[10px] text-text-secondary">Algorithm & Token Type</span>
-                   </div>
-                   <div className="bg-app-bg border border-border-base rounded-md p-3">
-                      {header ? renderJson(header, COLOR_HEADER) : <span className="text-text-secondary opacity-50 text-sm italic">Waiting for input...</span>}
-                   </div>
-                </div>
+            <section className="overflow-hidden rounded-[var(--radius)] border border-border-base bg-panel-bg">
+              <div className="flex items-center gap-2 border-b border-border-base bg-sidebar-bg px-3 py-2 text-[11px] font-semibold">
+                <span className="h-2 w-2 rounded-sm bg-[var(--purple)]" />
+                <span className={COLOR_PAYLOAD}>Payload</span>
+                <span className="font-mono text-[var(--fg-3)]">Data & claims</span>
+              </div>
+              <div className="p-3">
+                {payload ? (
+                  <>
+                    {renderJson(payload, COLOR_PAYLOAD)}
+                    <div className="mt-4 space-y-1 border-t border-dashed border-border-base pt-3">
+                      {['exp', 'iat', 'nbf'].map((key) => {
+                        if (!payload[key]) return null;
+                        return (
+                          <div key={key} className="flex gap-3 font-mono text-xs">
+                            <span className="w-8 text-text-secondary">{key}</span>
+                            <span className="text-accent">{formatDate(payload[key])}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-sm italic text-text-secondary opacity-60">Waiting for input...</span>
+                )}
+              </div>
+            </section>
 
-                {/* Payload Section */}
-                <div>
-                   <div className="flex items-center gap-2 mb-2 border-b border-border-base/50 pb-1">
-                      <span className={`text-xs font-bold uppercase tracking-wider ${COLOR_PAYLOAD}`}>Payload</span>
-                      <span className="text-[10px] text-text-secondary">Data & Claims</span>
-                   </div>
-                   <div className="bg-app-bg border border-border-base rounded-md p-3 relative group">
-                      {payload ? (
-                          <>
-                            {renderJson(payload, COLOR_PAYLOAD)}
-                            
-                            {/* Standard Claims Human Readable Overlay */}
-                            <div className="mt-4 pt-4 border-t border-border-base border-dashed space-y-1">
-                                {['exp', 'iat', 'nbf'].map(key => {
-                                    if (payload[key]) {
-                                        return (
-                                            <div key={key} className="flex gap-2 text-xs font-mono">
-                                                <span className="text-text-secondary w-8">{key}:</span>
-                                                <span className="text-accent">{formatDate(payload[key])}</span>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                })}
-                            </div>
-                          </>
-                      ) : (
-                          <span className="text-text-secondary opacity-50 text-sm italic">Waiting for input...</span>
-                      )}
-                   </div>
-                </div>
-
-                {/* Signature Section */}
-                <div>
-                   <div className="flex items-center gap-2 mb-2 border-b border-border-base/50 pb-1">
-                      <span className={`text-xs font-bold uppercase tracking-wider ${COLOR_SIGNATURE}`}>Signature</span>
-                      <span className="text-[10px] text-text-secondary">Verification Hash</span>
-                   </div>
-                   <div className="bg-app-bg border border-border-base rounded-md p-3 break-all font-mono text-sm text-blue-400 opacity-80">
-                      {signature || <span className="text-text-secondary opacity-50 italic">Waiting for input...</span>}
-                   </div>
-                </div>
-
-             </div>
-         </div>
-
+            <section className="overflow-hidden rounded-[var(--radius)] border border-border-base bg-panel-bg">
+              <div className="flex items-center gap-2 border-b border-border-base bg-sidebar-bg px-3 py-2 text-[11px] font-semibold">
+                <span className="h-2 w-2 rounded-sm bg-[var(--blue)]" />
+                <span className={COLOR_SIGNATURE}>Signature</span>
+                <span className="font-mono text-[var(--fg-3)]">Verification hash</span>
+              </div>
+              <div className={`break-all p-3 font-mono text-sm ${COLOR_SIGNATURE}`}>
+                {signature || <span className="italic text-text-secondary opacity-60">Waiting for input...</span>}
+              </div>
+            </section>
+          </div>
+        </ToolPane>
       </div>
-    </div>
+    </ToolShell>
   );
 };

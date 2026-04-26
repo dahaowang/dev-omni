@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type ThemeName = 'dark' | 'light' | 'graphite' | 'cream' | 'glass';
+export type ThemeName = 'dark' | 'light';
 
 export interface FontSettings {
   interface: string;
@@ -28,10 +28,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Initialize Theme
   const [theme, setTheme] = useState<ThemeName>(() => {
     const saved = localStorage.getItem('devomni-theme');
-    if (saved === 'dark' || saved === 'light' || saved === 'graphite' || saved === 'cream' || saved === 'glass') {
-      return saved as ThemeName;
+    if (saved === 'dark') {
+      return 'dark';
     }
-    return 'dark';
+    return 'light';
   });
 
   // Initialize Fonts
@@ -43,7 +43,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // ignore
     }
     return {
-      interface: 'JetBrains Mono',
+      interface: 'Inter',
       code: 'JetBrains Mono'
     };
   });

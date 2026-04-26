@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  PanelLeft, 
+  Braces,
   Trash2, 
   CheckCircle2, 
   XCircle,
@@ -18,6 +18,16 @@ import {
 // @ts-ignore
 import { jsonrepair } from 'jsonrepair';
 import { LineNumberTextarea } from '../common/LineNumberTextarea';
+import {
+  PaneHeader,
+  SegmentedControl,
+  StatusBadge,
+  StatusBar,
+  ToolButton,
+  ToolHeader,
+  ToolPane,
+  ToolShell
+} from '../common/ToolChrome';
 
 interface JsonFormatterProps {
   isSidebarOpen: boolean;
@@ -375,6 +385,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   const [stats, setStats] = useState<JsonStats | null>(null);
 
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [activeAction, setActiveAction] = useState<'format' | 'minify' | 'sort'>('format');
 
   // Initialize
   useEffect(() => {
@@ -416,6 +427,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
   // Actions
   const handleFormat = () => {
     try {
+      setActiveAction('format');
       const obj = JSON.parse(input);
       setOutput(JSON.stringify(obj, null, 2));
       setDiffMode(false);
@@ -425,6 +437,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
 
   const handleMinify = () => {
     try {
+      setActiveAction('minify');
       const obj = JSON.parse(input);
       setOutput(JSON.stringify(obj));
       setDiffMode(false);
@@ -434,6 +447,7 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
 
   const handleSort = () => {
     try {
+      setActiveAction('sort');
       const obj = JSON.parse(input);
       const sorted = sortObjectKeys(obj);
       setOutput(JSON.stringify(sorted, null, 2));
@@ -481,110 +495,60 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
     return processDiffToRows(diffs);
   }, [input, repairedJson, diffMode]);
 
+  const runJsonAction = (action: 'format' | 'minify' | 'sort') => {
+    if (action === 'format') handleFormat();
+    if (action === 'minify') handleMinify();
+    if (action === 'sort') handleSort();
+  };
+
   return (
-    <div className="flex-1 flex flex-col h-full bg-app-bg text-text-primary">
-      {/* Header */}
-      <div className="h-12 border-b border-border-base flex items-center px-4 bg-app-bg electron-drag select-none shrink-0 justify-between">
-        <div className="flex items-center">
-          {!isSidebarOpen && (
-            <>
-              <div className="w-[70px] h-full shrink-0 electron-drag" />
-              <button 
-                onClick={toggleSidebar} 
-                className="electron-no-drag p-1 mr-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </>
-          )}
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary tracking-wide">{toolLabel}</h2>
-          </div>
-        </div>
+    <ToolShell>
+      <ToolHeader icon={<Braces />} title={toolLabel} subtitle="format · minify · sort · repair · diff">
+        <StatusBadge tone={isValid ? 'ok' : 'bad'} icon={isValid ? <CheckCircle2 size={11} /> : <XCircle size={11} />}>
+          {isValid ? 'Valid' : 'Invalid'}
+        </StatusBadge>
+        <SegmentedControl
+          value={activeAction}
+          onChange={runJsonAction}
+          options={[
+            { value: 'format', label: 'Format', icon: <AlignLeft />, disabled: !isValid || !input },
+            { value: 'minify', label: 'Minify', icon: <Minimize2 />, disabled: !isValid || !input },
+            { value: 'sort', label: 'Sort', icon: <ArrowDownAZ />, disabled: !isValid || !input }
+          ]}
+        />
+        <ToolButton
+          onClick={handleRepair}
+          disabled={isValid || !input}
+          icon={<Wrench />}
+          variant={!isValid && input ? 'primary' : 'default'}
+          title="Attempt to repair invalid JSON"
+        >
+          Repair
+        </ToolButton>
+        <ToolButton
+          onClick={handleCopy}
+          disabled={!output && !repairedJson}
+          icon={copyFeedback ? <CheckCircle2 /> : <Copy />}
+          variant="primary"
+        >
+          {copyFeedback ? 'Copied' : 'Copy'}
+        </ToolButton>
+      </ToolHeader>
 
-        {/* Toolbar */}
-        <div className="flex items-center space-x-3 electron-no-drag">
-           {/* Validation Status */}
-           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md border ${
-             isValid 
-               ? 'bg-green-500/10 border-green-500/20 text-green-500' 
-               : 'bg-red-500/10 border-red-500/20 text-red-400'
-           }`}>
-              {isValid ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-              <span className="text-xs font-bold uppercase">{isValid ? 'Valid' : 'Invalid'}</span>
-           </div>
-
-           <div className="w-px h-4 bg-border-base mx-1" />
-
-           {/* Format Tools */}
-           <div className="flex bg-panel-bg rounded-md p-1 border border-border-base">
-              <button
-                 onClick={handleFormat}
-                 disabled={!isValid || !input}
-                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
-                 title="Format JSON"
-              >
-                 <AlignLeft size={14} />
-                 <span>Format</span>
-              </button>
-              <button
-                 onClick={handleMinify}
-                 disabled={!isValid || !input}
-                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
-                 title="Minify JSON"
-              >
-                 <Minimize2 size={14} />
-                 <span>Minify</span>
-              </button>
-              <button
-                 onClick={handleSort}
-                 disabled={!isValid || !input}
-                 className="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all text-text-secondary hover:text-text-primary hover:bg-hover-overlay disabled:opacity-30"
-                 title="Sort Keys"
-              >
-                 <ArrowDownAZ size={14} />
-                 <span>Sort</span>
-              </button>
-           </div>
-
-           <div className="w-px h-4 bg-border-base mx-1" />
-
-           {/* Repair Button */}
-           <button
-             onClick={handleRepair}
-             disabled={isValid || !input}
-             className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all border ${
-                !isValid && input
-                  ? 'bg-accent text-white border-accent shadow-sm hover:brightness-110 active:scale-95'
-                  : 'bg-element-bg border-border-base text-text-secondary opacity-50 cursor-not-allowed'
-             }`}
-             title="Attempt to repair invalid JSON"
-           >
-              <Wrench size={14} />
-              <span>Repair</span>
-           </button>
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col min-h-0">
-        
-        {/* Workspace: Split Panes */}
-        <div className="flex-1 flex overflow-hidden min-h-0">
-          
-          {/* Left Pane: Input */}
-          <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pr-2 border-r border-border-base">
-            <div className="flex items-center justify-between h-8 mb-2 px-1 shrink-0">
-              <div className="flex items-center gap-2">
-                 <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Input</span>
-                 {diffMode && <span className="text-[10px] bg-accent/10 text-accent px-2 rounded-full font-medium">Click to Edit</span>}
-              </div>
-              <button onClick={handleClear} className="text-xs text-text-secondary hover:text-red-400 flex items-center gap-1 transition-colors">
-                <Trash2 size={12} /> Clear
-              </button>
-            </div>
-            <div className={`flex-1 bg-panel-bg rounded-lg border overflow-hidden relative transition-colors ${
-              !isValid && input ? 'border-red-500/30' : 'border-border-base focus-within:border-accent'
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-2">
+          <ToolPane className="border-b border-border-base lg:border-b-0 lg:border-r">
+            <PaneHeader
+              title="Input"
+              meta={`${input ? input.split('\n').length : 0} lines`}
+              actions={
+                <ToolButton onClick={handleClear} icon={<Trash2 />} variant="ghost" className="h-[22px] px-1.5">
+                  Clear
+                </ToolButton>
+              }
+            />
+            <div className={`relative min-h-0 flex-1 overflow-hidden transition-colors ${
+              !isValid && input ? 'border-l-2 border-[var(--red)]' : ''
             }`}>
               {diffMode ? (
                   <div 
@@ -625,56 +589,29 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
                   />
               )}
             </div>
-          </div>
+          </ToolPane>
 
-          {/* Right Pane: Output */}
-          <div className="flex-1 flex flex-col min-w-0 bg-app-bg p-4 pl-2">
-            <div className="flex items-center justify-between h-8 mb-2 px-1 shrink-0">
-              <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-text-secondary uppercase tracking-wider">Output</span>
-                  
-                  {/* View Toggles */}
-                  {!diffMode && parsedObject && (
-                    <div className="flex bg-panel-bg rounded border border-border-base p-0.5 ml-2">
-                      <button 
-                        onClick={() => setViewMode('code')}
-                        className={`p-1 rounded text-[10px] font-medium flex items-center gap-1 transition-colors ${
-                          viewMode === 'code' ? 'bg-element-bg text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'
-                        }`}
-                        title="Code View"
-                      >
-                        <Code2 size={12} /> Code
-                      </button>
-                      <button 
-                        onClick={() => setViewMode('tree')}
-                        className={`p-1 rounded text-[10px] font-medium flex items-center gap-1 transition-colors ${
-                          viewMode === 'tree' ? 'bg-element-bg text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'
-                        }`}
-                        title="Tree View"
-                      >
-                        <Network size={12} /> Tree
-                      </button>
-                    </div>
-                  )}
-
-                  {diffMode && (
-                    <span className="text-[10px] bg-accent/20 text-accent px-2 rounded-full font-medium flex items-center gap-1">
-                      <ArrowRightLeft size={10} /> Diff View
-                    </span>
-                  )}
-              </div>
-              {(output || repairedJson) && (
-                <button 
-                  onClick={handleCopy}
-                  className="flex items-center space-x-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
-                >
-                  {copyFeedback ? <CheckCircle2 size={12} className="text-green-500"/> : <Copy size={12} />}
-                  <span>{copyFeedback ? 'Copied' : 'Copy'}</span>
-                </button>
-              )}
-            </div>
-            
-            <div className="flex-1 bg-panel-bg rounded-lg border border-border-base overflow-hidden relative group hover:border-border-hover transition-colors">
+          <ToolPane>
+            <PaneHeader
+              title="Output"
+              meta={diffMode ? 'diff view' : viewMode}
+              actions={
+                !diffMode && parsedObject ? (
+                  <SegmentedControl
+                    value={viewMode}
+                    onChange={(mode: 'code' | 'tree') => setViewMode(mode)}
+                    options={[
+                      { value: 'code', label: 'Code', icon: <Code2 /> },
+                      { value: 'tree', label: 'Tree', icon: <Network /> }
+                    ]}
+                    className="h-[24px]"
+                  />
+                ) : diffMode ? (
+                  <StatusBadge icon={<ArrowRightLeft size={10} />}>Diff</StatusBadge>
+                ) : null
+              }
+            />
+            <div className="relative min-h-0 flex-1 overflow-hidden transition-colors">
               {diffMode ? (
                   <div className="w-full h-full overflow-auto font-mono text-sm leading-6">
                     {diffRows.map((row, idx) => {
@@ -715,31 +652,30 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
                   />
               )}
             </div>
-          </div>
+          </ToolPane>
         </div>
 
-        {/* Info Status Bar (Bottom) - Compact Single Line */}
         {stats && !diffMode && isValid && (
-            <div className="h-8 border-t border-border-base bg-sidebar-bg px-4 flex items-center justify-between text-xs text-text-secondary shrink-0 select-none">
-                <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1.5">
-                        <CheckCircle2 size={12} className="text-accent" />
-                        <span className="font-semibold text-text-primary">JSON Info</span>
-                    </span>
-                    <span className="w-px h-3 bg-border-base" />
-                    <span>Size: <span className="text-text-primary font-mono">{formatBytes(stats.sizeBytes)}</span></span>
-                    <span>Lines: <span className="text-text-primary font-mono">{stats.lines}</span></span>
-                    <span>Chars: <span className="text-text-primary font-mono">{stats.chars}</span></span>
-                    <span className="w-px h-3 bg-border-base" />
-                    <span>Depth: <span className="text-text-primary font-mono">{stats.maxDepth}</span></span>
-                    <span>Keys: <span className="text-text-primary font-mono">{stats.keys}</span></span>
-                    <span>Objects: <span className="text-text-primary font-mono">{stats.objects}</span></span>
-                    <span>Arrays: <span className="text-text-primary font-mono">{stats.arrays}</span></span>
-                </div>
-            </div>
+          <StatusBar
+            right={
+              <>
+                <span>keys <b className="font-medium text-text-primary">{stats.keys}</b></span>
+                <span>depth <b className="font-medium text-text-primary">{stats.maxDepth}</b></span>
+                <span>arrays <b className="font-medium text-text-primary">{stats.arrays}</b></span>
+                <span>objects <b className="font-medium text-text-primary">{stats.objects}</b></span>
+              </>
+            }
+          >
+            <span><b className="font-medium text-text-primary">JSON</b></span>
+            <span className="h-3 w-px bg-border-base" />
+            <span>UTF-8</span>
+            <span className="h-3 w-px bg-border-base" />
+            <span>size <b className="font-medium text-text-primary">{formatBytes(stats.sizeBytes)}</b></span>
+            <span>lines <b className="font-medium text-text-primary">{stats.lines}</b></span>
+            <span>chars <b className="font-medium text-text-primary">{stats.chars}</b></span>
+          </StatusBar>
         )}
 
-        {/* Debug / Error Panel (VS Code Style) */}
         {!isValid && errorDetails && (
            <div className="h-32 shrink-0 border-t border-border-base bg-panel-bg flex flex-col animate-slide-up-fade shadow-xl z-10">
               <div className="h-8 border-b border-border-base flex items-center px-4 gap-2 bg-sidebar-bg/50">
@@ -765,6 +701,6 @@ export const JsonFormatter: React.FC<JsonFormatterProps> = ({ isSidebarOpen, tog
         )}
 
       </div>
-    </div>
+    </ToolShell>
   );
 };

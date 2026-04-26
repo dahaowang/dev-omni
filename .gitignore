@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 release/
+public/ocr/
 *.local
 
 # Editor directories and files
